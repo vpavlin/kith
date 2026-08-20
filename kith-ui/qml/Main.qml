@@ -299,7 +299,7 @@ Item {
                     }
                     LogosButton {
                         text: "Share…"
-                        onClicked: { root.shareLinkText = String(root.j(root.core("shareLink", [root.selectedBookId]), "")); sharePopup.open() }
+                        onClicked: { root.openShare(root.selectedBookId) }
                     }
                     LogosButton { text: "Import vCard"; onClicked: importPopup.open() }
                     LogosButton {
@@ -696,20 +696,51 @@ Item {
         }
     }
 
-    // ── share popup (kith Phase 4: sync) — copyable kith://join… link ──────────
+    // ── share popup (kith Phase 4: sync) — copyable kith://join… link + a real
+    //    QR the phone can scan (mirrors scala's CalendarView share popup) ───────
     property string shareLinkText: ""
+    property var qrData: null    // { n, cells } from core qrMatrix
     TextEdit { id: shareClipHelper; visible: false; text: root.shareLinkText }
+    function openShare(bookId) {
+        root.shareLinkText = String(root.j(root.core("shareLink", [bookId]), ""))
+        // Build a scannable QR matrix from the core (drawn on a Canvas; data: URIs
+        // are blocked in the sandbox, so we render cells ourselves).
+        root.qrData = null
+        var m = root.j(root.core("qrMatrix", [root.shareLinkText]), null)
+        if (m && m.ok && m.n && m.cells && m.cells.length >= m.n * m.n) root.qrData = { n: m.n, cells: m.cells }
+        qrCanvas.requestPaint()
+        sharePopup.open()
+    }
     Popup {
         id: sharePopup
         anchors.centerIn: Overlay.overlay
         width: 460; modal: true; padding: Theme.spacing.large
         background: Rectangle { radius: Theme.spacing.radiusMedium; color: Theme.palette.backgroundElevated; border.width: 1; border.color: Theme.palette.borderHairline }
+        onOpened: qrCanvas.requestPaint()
         ColumnLayout {
             anchors.fill: parent; spacing: Theme.spacing.small
             LogosText { text: "Share this book"; color: Theme.palette.text; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
             LogosText {
-                text: "Anyone with this link can join and sync this book's contacts. Send it over a trusted channel."
+                text: "Anyone with this link can join and sync this book's contacts. Scan on the phone, or send the link over a trusted channel."
                 color: Theme.palette.textTertiary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true
+            }
+            Rectangle {
+                Layout.alignment: Qt.AlignHCenter
+                width: 220; height: 220; radius: Theme.spacing.radiusSmall; color: "#ffffff"
+                visible: root.qrData !== null
+                Canvas {
+                    id: qrCanvas; anchors.fill: parent; anchors.margins: 10
+                    onPaint: {
+                        var ctx = getContext("2d"); ctx.reset()
+                        ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, width, height)
+                        var d = root.qrData; if (!d || !d.n) return
+                        var cell = width / d.n; ctx.fillStyle = "#000000"
+                        for (var y = 0; y < d.n; y++)
+                            for (var x = 0; x < d.n; x++)
+                                if (d.cells[y * d.n + x])
+                                    ctx.fillRect(Math.floor(x * cell), Math.floor(y * cell), Math.ceil(cell), Math.ceil(cell))
+                    }
+                }
             }
             Field { id: shareLinkField; Layout.fillWidth: true; readOnly: true; text: root.shareLinkText }
             RowLayout {

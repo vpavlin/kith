@@ -8,6 +8,7 @@
 #include "vcard.hpp"
 
 #include <nlohmann/json.hpp>
+#include "qrcodegen.hpp"
 #include "logos_transport.hpp"
 #include "logos_sync/catchup.hpp"   // delta catch-up (buildInitial / respond)
 #include <QTimer>                    // catch-up retry timers (mesh forms ~10s after start)
@@ -320,7 +321,7 @@ void KithImpl::ensureDelivery() { if (m_sync) m_sync->bootstrap(); }
 // -- identity -------------------------------------------------------------------------
 // Keep in sync with metadata.json "version". The view compares this to the minimum
 // it needs and warns on a stale core.
-std::string KithImpl::coreVersion() const { return "0.2.0"; }
+std::string KithImpl::coreVersion() const { return "0.2.1"; }
 std::string KithImpl::getIdentity() const { return m_identity; }
 
 // -- books ------------------------------------------------------------------------------
@@ -533,6 +534,19 @@ bool KithImpl::handleShareLink(const std::string& link, const std::string& ident
     if (!bindId.empty()) { try { modules().loam_core.bindContainer(id, bindId); } catch (...) {} }
     sendSyncReq(id);   // just joined -> pull history
     return true;
+}
+// -- QR (vendored qrcodegen -> matrix; data: URIs are sandbox-blocked, mirrors scala) --
+std::string KithImpl::qrMatrix(const std::string& text) {
+    json out;
+    if (text.empty()) { out["ok"] = false; out["error"] = "empty"; return out.dump(); }
+    try {
+        const qrcodegen::QrCode qr = qrcodegen::QrCode::encodeText(text.c_str(), qrcodegen::QrCode::Ecc::MEDIUM);
+        const int n = qr.getSize();
+        json cells = json::array();
+        for (int y = 0; y < n; ++y) for (int x = 0; x < n; ++x) cells.push_back(qr.getModule(x, y) ? 1 : 0);
+        out["ok"] = true; out["n"] = n; out["cells"] = std::move(cells);
+    } catch (const std::exception& e) { out["ok"] = false; out["error"] = std::string("qr: ") + e.what(); }
+    return out.dump();
 }
 std::string KithImpl::diagnostics() {
     ensureDelivery();

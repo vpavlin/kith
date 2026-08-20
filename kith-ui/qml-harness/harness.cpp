@@ -68,6 +68,19 @@ QString MockLogos::callModule(const QString &mod, const QString &method, const Q
     if (method == "deleteContact") return "true";
     if (method == "importVcard") return QString(R"({"imported":1,"ids":["cX"]})");
     if (method == "exportVcard") return QString("\"BEGIN:VCARD\\nVERSION:4.0\\nFN:Ada Lovelace\\nEND:VCARD\\n\"");
+    if (method == "shareLink") return QString("\"kith://join?id=b1&key=bW9ja2tleQ&name=Personal\"");
+    if (method == "qrMatrix") {
+        // Mock matrix: a deterministic checkerboard-ish pattern (NOT a real scannable
+        // QR — the harness only proves the core->view->Canvas draw pipeline works).
+        const int n = 21;
+        QString cells;
+        for (int y = 0; y < n; ++y) for (int x = 0; x < n; ++x) {
+            bool border = (x < 4 && y < 4) || (x >= n - 4 && y < 4) || (x < 4 && y >= n - 4); // finder-like corners
+            bool on = border || ((x + y) % 3 == 0);
+            cells += (on ? "1" : "0"); if (!(y == n - 1 && x == n - 1)) cells += ",";
+        }
+        return QString(R"({"ok":true,"n":%1,"cells":[%2]})").arg(n).arg(cells);
+    }
     return "";
 }
 
@@ -118,7 +131,9 @@ int main(int argc, char **argv) {
     QTimer::singleShot(3600, [&] { grab(&view, out + "/06-import-vcard.png"); runJs(&view, "importPopup.close()"); });
     QTimer::singleShot(3900, [&] { runJs(&view, "exportedVcard = String(j(core('exportVcard', [selectedBookId, '']), '')); exportPopup.open()"); });
     QTimer::singleShot(4200, [&] { grab(&view, out + "/07-export-vcard.png"); runJs(&view, "exportPopup.close()"); });
-    QTimer::singleShot(4500, [&] { app.quit(); });
+    QTimer::singleShot(4500, [&] { runJs(&view, "openShare('b1')"); });
+    QTimer::singleShot(4800, [&] { grab(&view, out + "/08-share-qr.png"); runJs(&view, "sharePopup.close()"); });
+    QTimer::singleShot(5100, [&] { app.quit(); });
     return app.exec();
 }
 #include "harness.moc"

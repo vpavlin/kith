@@ -21,6 +21,7 @@ logos_module(
         src/contact_sync.h
         src/contact_sync.cpp
         src/logos_transport.hpp
+        src/qrcodegen.cpp
     INCLUDE_DIRS src
     LINK_LIBRARIES OpenSSL::Crypto
 )

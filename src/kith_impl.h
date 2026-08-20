@@ -128,6 +128,10 @@ public:
     /// the current default), start syncing and request catch-up. Returns false if
     /// the link doesn't parse.
     bool handleShareLink(const std::string& link, const std::string& identityId = "");
+    /// Encode text as a REAL QR code matrix (vendored qrcodegen, mirrors scala's
+    /// qrMatrix). Returns JSON {"ok":true,"n":<size>,"cells":[0|1,...row-major]}
+    /// for the view to draw on a Canvas (data: URIs are blocked in the sandbox).
+    std::string qrMatrix(const std::string& text);
     /// Connection + book diagnostics for a debug panel. JSON: {identity, ctxReady,
     /// deliveryStatus, nodeReady, dataDir, bookCount, contactCount,
     /// books:[{id,name,syncing,contacts}]}
