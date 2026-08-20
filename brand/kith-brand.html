@@ -1,0 +1,201 @@
+<title>Kith Brand</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+  :root{
+    --parchment:#EFE6D2; --parchment-2:#E7DBC0; --panel:#F3ECDC;
+    --ink:#2A2118; --ink-soft:#5B4C39;
+    --umber:#6B4E2E; --sprout:#5E7C39; --gilt:#AD8020; --rubric:#8A2E22;
+    --rule:rgba(42,33,24,.20); --rule-soft:rgba(42,33,24,.10);
+    --shadow:rgba(42,33,24,.14);
+    --grain:rgba(107,78,46,.05);
+  }
+  :root:not([data-theme="light"]){}
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --parchment:#1B1509; --parchment-2:#221B10; --panel:#241C11;
+      --ink:#EBDEC2; --ink-soft:#B7A582;
+      --umber:#CB9E60; --sprout:#95B56C; --gilt:#D9AC3E; --rubric:#CE5C4C;
+      --rule:rgba(235,222,194,.18); --rule-soft:rgba(235,222,194,.09);
+      --shadow:rgba(0,0,0,.45); --grain:rgba(235,222,194,.035);
+    }
+  }
+  :root[data-theme="dark"]{
+    --parchment:#1B1509; --parchment-2:#221B10; --panel:#241C11;
+    --ink:#EBDEC2; --ink-soft:#B7A582;
+    --umber:#CB9E60; --sprout:#95B56C; --gilt:#D9AC3E; --rubric:#CE5C4C;
+    --rule:rgba(235,222,194,.18); --rule-soft:rgba(235,222,194,.09);
+    --shadow:rgba(0,0,0,.45); --grain:rgba(235,222,194,.035);
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--parchment); color:var(--ink);
+    font-family:"EB Garamond",Georgia,serif; font-size:19px; line-height:1.6;
+    background-image:
+      radial-gradient(1200px 600px at 15% -10%, var(--grain), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, var(--grain), transparent 55%);
+  }
+  .wrap{max-width:960px; margin:0 auto; padding:0 28px}
+  h1,h2,h3{text-wrap:balance; margin:0}
+  .black{font-family:"UnifrakturMaguntia",serif; font-weight:400}
+  .eyebrow{font-variant:small-caps; letter-spacing:.22em; font-size:.82rem; color:var(--rubric); font-weight:600}
+  .muted{color:var(--ink-soft)}
+  a{color:var(--sprout); text-decoration-thickness:1px; text-underline-offset:3px}
+
+  /* ── the mark: an illuminated initial ── */
+  .emblem{
+    --sz:120px; width:var(--sz); height:var(--sz); flex:0 0 auto;
+    position:relative; border-radius:22%;
+    display:grid; place-items:center;
+    background:
+      linear-gradient(160deg, color-mix(in srgb, var(--umber) 78%, #000 4%), var(--umber));
+    box-shadow:0 6px 22px var(--shadow), inset 0 0 0 1.5px rgba(255,240,205,.14);
+    overflow:hidden;
+  }
+  .emblem::before{ /* ruled inner frame, like a manuscript box */
+    content:""; position:absolute; inset:9%; border:1.5px solid rgba(240,225,190,.45);
+    border-radius:16%;
+  }
+  .emblem .k{
+    font-family:"UnifrakturMaguntia",serif; font-size:calc(var(--sz)*.62); line-height:1;
+    color:#F0E6CE; margin-top:calc(var(--sz)*.02);
+    text-shadow:0 1px 0 rgba(0,0,0,.25); position:relative; z-index:2;
+    background:linear-gradient(180deg,#F6ECCB, #E7C877 62%, var(--gilt));
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .emblem .sprig{position:absolute; right:11%; bottom:9%; width:26%; z-index:2; opacity:.95}
+  .emblem.sprout-bg{background:linear-gradient(160deg, #4d6a2f, var(--sprout))}
+  .emblem.parch-bg{background:linear-gradient(160deg, var(--parchment-2), #dccba3)}
+  .emblem.parch-bg::before{border-color:rgba(107,78,46,.4)}
+  .emblem.parch-bg .k{background:linear-gradient(180deg,var(--rubric),#6f2318); -webkit-background-clip:text; background-clip:text}
+
+  /* ── hero ── */
+  header{padding:74px 0 40px}
+  .hero{display:flex; gap:34px; align-items:center; flex-wrap:wrap}
+  .hero .emblem{--sz:150px}
+  .wordmark{font-family:"UnifrakturMaguntia",serif; font-size:clamp(76px,15vw,140px); line-height:.9; color:var(--ink); margin:0}
+  .lede{font-size:1.5rem; color:var(--ink-soft); font-style:italic; margin:.5rem 0 0; max-width:34ch}
+  .kin{color:var(--rubric); font-style:normal}
+
+  .rule{height:1px; background:var(--rule); margin:8px 0 0}
+  .double-rule{border-top:2px solid var(--rule); border-bottom:1px solid var(--rule-soft); height:5px; margin:52px 0}
+
+  section{padding:14px 0}
+  .sec-head{display:flex; align-items:baseline; gap:16px; margin-bottom:22px}
+  .sec-head h2{font-family:"EB Garamond",serif; font-weight:600; font-size:1.7rem}
+  .sec-head .n{font-family:"UnifrakturMaguntia",serif; color:var(--gilt); font-size:1.9rem; line-height:1}
+
+  /* palette */
+  .swatches{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
+  @media(max-width:640px){.swatches{grid-template-columns:repeat(2,1fr)}}
+  .sw{border:1px solid var(--rule); border-radius:10px; overflow:hidden; background:var(--panel)}
+  .sw .chip{height:76px}
+  .sw .meta{padding:9px 12px; display:flex; justify-content:space-between; align-items:baseline}
+  .sw .nm{font-variant:small-caps; letter-spacing:.06em; font-weight:600}
+  .sw .hex{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:.78rem; color:var(--ink-soft)}
+
+  /* marks row */
+  .marks{display:flex; gap:30px; align-items:center; flex-wrap:wrap}
+  .mark-cap{font-variant:small-caps; letter-spacing:.08em; color:var(--ink-soft); font-size:.85rem; text-align:center; margin-top:10px}
+  .mark-item{display:flex; flex-direction:column; align-items:center}
+
+  /* type specimen */
+  .spec{background:var(--panel); border:1px solid var(--rule); border-radius:14px; padding:26px 30px}
+  .spec .row{display:flex; justify-content:space-between; align-items:baseline; gap:16px; padding:14px 0; border-bottom:1px solid var(--rule-soft)}
+  .spec .row:last-child{border-bottom:0}
+  .spec .lbl{font-variant:small-caps; letter-spacing:.1em; color:var(--ink-soft); font-size:.78rem; flex:0 0 128px}
+  .spec .samp{flex:1}
+
+  /* website taste — illuminated paragraph */
+  .taste{background:var(--panel); border:1px solid var(--rule); border-radius:14px; padding:30px 34px; box-shadow:0 4px 18px var(--shadow)}
+  .taste h3{font-family:"EB Garamond",serif; font-weight:600; font-size:1.5rem; color:var(--rubric); font-variant:small-caps; letter-spacing:.03em}
+  .dropcap::first-letter{
+    font-family:"UnifrakturMaguntia",serif; float:left; font-size:4.4rem; line-height:.72;
+    padding:6px 12px 0 0; color:var(--gilt);
+  }
+  .cta{display:inline-flex; align-items:center; gap:10px; margin-top:20px; padding:11px 20px;
+    background:var(--umber); color:#F1E7CE; border-radius:9px; font-variant:small-caps; letter-spacing:.06em; font-weight:600; text-decoration:none;
+    box-shadow:0 3px 12px var(--shadow)}
+  code{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:.86em; background:color-mix(in srgb,var(--umber) 14%, transparent); padding:2px 7px; border-radius:5px; color:var(--ink)}
+
+  footer{padding:40px 0 64px; color:var(--ink-soft); font-size:.95rem}
+  .kv{display:flex; gap:10px} .kv .k2{color:var(--rubric); font-variant:small-caps; letter-spacing:.06em; flex:0 0 92px}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="hero">
+      <div class="emblem" aria-hidden="true">
+        <span class="k">K</span>
+        <svg class="sprig" viewBox="0 0 24 24" fill="none" stroke="#dfe9c9" stroke-width="1.7" stroke-linecap="round"><path d="M12 22V9"/><path d="M12 13c-3 0-5-2-5-5 3 0 5 2 5 5Z" fill="#8bab5f" stroke="none"/><path d="M12 11c3 0 5-2 5-5-3 0-5 2-5 5Z" fill="#a7c47a" stroke="none"/></svg>
+      </div>
+      <div>
+        <p class="eyebrow">the Loam ecosystem · address book</p>
+        <h1 class="wordmark">Kith</h1>
+        <p class="lede">the people you know — your <span class="kin">kith&nbsp;and&nbsp;kin</span>, kept close.</p>
+      </div>
+    </div>
+    <div class="double-rule"></div>
+  </header>
+
+  <section>
+    <div class="sec-head"><span class="n">I</span><h2>The mark — an illuminated initial</h2></div>
+    <p class="muted" style="max-width:62ch">A blackletter <em>K</em> set as a drop-cap in a ruled roundel, the way a scribe would open a page. Gilt on umber for the app; a rubricated red on parchment, and a sprout-green field, as alternates. The sprig ties it to Loam — your people, in the soil.</p>
+    <div class="marks" style="margin-top:24px">
+      <div class="mark-item"><div class="emblem"><span class="k">K</span></div><span class="mark-cap">Gilt · primary</span></div>
+      <div class="mark-item"><div class="emblem sprout-bg"><span class="k">K</span></div><span class="mark-cap">Sprout</span></div>
+      <div class="mark-item"><div class="emblem parch-bg"><span class="k">K</span></div><span class="mark-cap">Rubric on parchment</span></div>
+      <div class="mark-item"><div class="emblem" style="--sz:56px"><span class="k">K</span></div><span class="mark-cap">Favicon size</span></div>
+    </div>
+  </section>
+
+  <div class="rule"></div>
+
+  <section>
+    <div class="sec-head"><span class="n">II</span><h2>Palette — parchment &amp; soil</h2></div>
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:#EFE6D2"></div><div class="meta"><span class="nm">Parchment</span><span class="hex">#EFE6D2</span></div></div>
+      <div class="sw"><div class="chip" style="background:#2A2118"></div><div class="meta"><span class="nm">Ink</span><span class="hex">#2A2118</span></div></div>
+      <div class="sw"><div class="chip" style="background:#6B4E2E"></div><div class="meta"><span class="nm">Umber</span><span class="hex">#6B4E2E</span></div></div>
+      <div class="sw"><div class="chip" style="background:#5E7C39"></div><div class="meta"><span class="nm">Sprout</span><span class="hex">#5E7C39</span></div></div>
+      <div class="sw"><div class="chip" style="background:#AD8020"></div><div class="meta"><span class="nm">Gilt</span><span class="hex">#AD8020</span></div></div>
+      <div class="sw"><div class="chip" style="background:#8A2E22"></div><div class="meta"><span class="nm">Rubric</span><span class="hex">#8A2E22</span></div></div>
+    </div>
+    <p class="muted" style="margin-top:14px; font-size:.98rem">Sprout is the shared thread with Loam; the rest is scriptorium — aged paper, oak-gall ink, umber earth, gold leaf, and the red a scribe reserved for what mattered.</p>
+  </section>
+
+  <div class="rule"></div>
+
+  <section>
+    <div class="sec-head"><span class="n">III</span><h2>Typography</h2></div>
+    <div class="spec">
+      <div class="row"><span class="lbl">Blackletter</span><span class="samp"><span class="black" style="font-size:2.6rem">Kith &amp; Kin</span><div class="muted" style="font-size:.85rem">UnifrakturMaguntia · wordmark &amp; illuminated initials only</div></span></div>
+      <div class="row"><span class="lbl">Display serif</span><span class="samp"><span style="font-size:1.7rem; font-weight:600">Your people, kept close</span><div class="muted" style="font-size:.85rem">EB Garamond 600 · headings</div></span></div>
+      <div class="row"><span class="lbl">Body</span><span class="samp" style="max-width:52ch">A contact is not a row in a database — it is a person you know, tended over years. Kith keeps them, and lets you share a circle with the people who should have it.<div class="muted" style="font-size:.85rem; margin-top:4px">EB Garamond 400 / italic</div></span></div>
+      <div class="row"><span class="lbl">Label / data</span><span class="samp"><span style="font-variant:small-caps; letter-spacing:.12em">Book · Editor · Verified</span> &nbsp; <code>kith://join?id=…</code></span></div>
+    </div>
+  </section>
+
+  <div class="rule"></div>
+
+  <section>
+    <div class="sec-head"><span class="n">IV</span><h2>Website, in the old tongue</h2></div>
+    <div class="taste">
+      <h3>Of kith &amp; kin</h3>
+      <p class="dropcap">Kin is the family you are born to; <em>kith</em> is the people you come to know — your neighbours, your fellows, your circle. Kith the app is your address book, held on your own devices and shared, when you choose, with none but those you name. A contact may carry a Loam key, and so become someone you can trust with a shared calendar or a room — the same person, verified, across every app.</p>
+      <a class="cta" href="#">Enter →</a>
+    </div>
+    <p class="muted" style="margin-top:16px; font-size:.98rem">The site leans blackletter for the name and headings, Garamond for the reading, illuminated drop-caps and rubricated headings for flavour — legible first, medieval in the trim. Same bones as the scala / loam single-page sites, dressed for the scriptorium.</p>
+  </section>
+
+  <div class="double-rule"></div>
+
+  <footer>
+    <div class="kv"><span class="k2">Name</span><span>Kith — Old English <em>cȳþþ</em>, “kith and kin”: the people one knows.</span></div>
+    <div class="kv" style="margin-top:6px"><span class="k2">Kinship</span><span>Sibling to Scala, KYM, Qaku; built on Loam. Sprout-green is the family tie.</span></div>
+    <div class="kv" style="margin-top:6px"><span class="k2">Next</span><span>Pick a mark treatment → I cut the app icons (mobile + desktop) and stand up the site.</span></div>
+  </footer>
+</div>
