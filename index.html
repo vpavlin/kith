@@ -123,6 +123,16 @@
 
   footer{padding:40px 0 64px; color:var(--ink-soft); font-size:.95rem}
   .kv{display:flex; gap:10px} .kv .k2{color:var(--rubric); font-variant:small-caps; letter-spacing:.06em; flex:0 0 92px}
+
+  /* ── the old tongue ── */
+  .oe{font-family:"UnifrakturMaguntia",serif; font-size:2.1rem; color:var(--umber); margin:.4rem 0 .15rem; line-height:1}
+  .oe .et{color:var(--rubric); padding:0 .06em}
+  .gloss{font-family:"EB Garamond",serif; font-style:italic; font-size:1.05rem; color:var(--ink-soft)}
+  .pilcrow{color:var(--rubric); font-weight:600; margin-right:.35em; font-family:"EB Garamond",serif}
+  .epigraph{font-family:"EB Garamond",serif; font-style:italic; color:var(--ink-soft); border-left:2px solid var(--rubric); padding-left:16px; margin:0 0 6px}
+  .epigraph .oe-line{font-style:normal; color:var(--umber); font-size:1.08rem}
+  .colophon{font-style:italic; color:var(--ink-soft); border-top:1px solid var(--rule); padding-top:16px; margin-top:26px; max-width:60ch}
+  .colophon .rubric-word{color:var(--rubric); font-variant:small-caps; letter-spacing:.04em; font-style:normal}
 </style>
 
 <div class="wrap">
@@ -130,12 +140,12 @@
     <div class="hero">
       <div class="emblem" aria-hidden="true">
         <span class="k">K</span>
-        <svg class="sprig" viewBox="0 0 24 24" fill="none" stroke="#dfe9c9" stroke-width="1.7" stroke-linecap="round"><path d="M12 22V9"/><path d="M12 13c-3 0-5-2-5-5 3 0 5 2 5 5Z" fill="#8bab5f" stroke="none"/><path d="M12 11c3 0 5-2 5-5-3 0-5 2-5 5Z" fill="#a7c47a" stroke="none"/></svg>
       </div>
       <div>
-        <p class="eyebrow">the Loam ecosystem · address book</p>
+        <p class="eyebrow">of þe Loam ecgcræft · a bōc of names</p>
         <h1 class="wordmark">Kith</h1>
-        <p class="lede">the people you know — your <span class="kin">kith&nbsp;and&nbsp;kin</span>, kept close.</p>
+        <p class="oe">cȳþþ <span class="et">ond</span> cynn <span class="gloss">— þe folk þū cnāwest</span></p>
+        <p class="lede">From Old English <em>cȳþþ</em>: not kin by blood, but the neighbours, fellows &amp; friends one comes to know — and keeps close.</p>
       </div>
     </div>
     <div class="double-rule"></div>
@@ -182,20 +192,22 @@
   <div class="rule"></div>
 
   <section>
-    <div class="sec-head"><span class="n">IV</span><h2>Website, in the old tongue</h2></div>
+    <div class="sec-head"><span class="n">IV</span><h2>The web-site, in þe old tongue</h2></div>
     <div class="taste">
-      <h3>Of kith &amp; kin</h3>
-      <p class="dropcap">Kin is the family you are born to; <em>kith</em> is the people you come to know — your neighbours, your fellows, your circle. Kith the app is your address book, held on your own devices and shared, when you choose, with none but those you name. A contact may carry a Loam key, and so become someone you can trust with a shared calendar or a room — the same person, verified, across every app.</p>
-      <a class="cta" href="#">Enter →</a>
+      <p class="epigraph"><span class="oe-line">Ne biþ nān man frēondlēas þe gōde cȳþþe hæfþ.</span><br>“No man is friendless who has good kith.”</p>
+      <h3>Of Kith <span style="color:var(--rubric)">&amp;</span> Kin</h3>
+      <p class="dropcap"><span class="pilcrow">¶</span>Kin is þe family one is born to; <em>kith</em> is þe folk one comes to know — neighbours, fellows <span style="color:var(--rubric)">&amp;</span> friends. Kith þe app is your <em>bōc of names</em>, holden on your own devices, &amp; shared — when you will it — with none but those you name. A name may bear a Loam key, &amp; so become one you may trust with a shared calendar or a room: þe same person, sworn true, across every app.</p>
+      <a class="cta" href="#">Gā in →</a>
     </div>
-    <p class="muted" style="margin-top:16px; font-size:.98rem">The site leans blackletter for the name and headings, Garamond for the reading, illuminated drop-caps and rubricated headings for flavour — legible first, medieval in the trim. Same bones as the scala / loam single-page sites, dressed for the scriptorium.</p>
+    <p class="muted" style="margin-top:16px; font-size:.98rem">Blackletter for þe name &amp; the headings, Garamond for þe reading; illuminated drop-caps, rubricated pilcrows, &amp; red for what matters. Legible first, medieval in the trim — same bones as the scala / loam single-page sites, dressed for the scriptorium.</p>
   </section>
 
   <div class="double-rule"></div>
 
   <footer>
-    <div class="kv"><span class="k2">Name</span><span>Kith — Old English <em>cȳþþ</em>, “kith and kin”: the people one knows.</span></div>
-    <div class="kv" style="margin-top:6px"><span class="k2">Kinship</span><span>Sibling to Scala, KYM, Qaku; built on Loam. Sprout-green is the family tie.</span></div>
-    <div class="kv" style="margin-top:6px"><span class="k2">Next</span><span>Pick a mark treatment → I cut the app icons (mobile + desktop) and stand up the site.</span></div>
+    <div class="kv"><span class="k2">Name</span><span>Kith — Old English <em>cȳþþ</em> (“kith and kin”): the people one knows.</span></div>
+    <div class="kv" style="margin-top:6px"><span class="k2">Kinship</span><span>Sibling to Scala, KYM, Qaku; built on Loam. Sprout-green is the family thread — in the palette, not the mark.</span></div>
+    <div class="kv" style="margin-top:6px"><span class="k2">Next</span><span>Pick a mark treatment (gilt · sprout · rubric) → I cut the app icons (mobile + desktop) and raise the site.</span></div>
+    <p class="colophon"><span class="rubric-word">Colophon.</span> Here endeth the brand of Kith, writ in Unifraktur &amp; Garamond upon a ground of parchment &amp; soil. Þe scribe seeketh thy counsel ere the gilding is laid.</p>
   </footer>
 </div>
