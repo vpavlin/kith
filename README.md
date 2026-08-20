@@ -82,3 +82,5 @@ proposals under [`docs/adr/`](docs/adr). Nothing is built yet. See
 | [0006](docs/adr/0006-architecture-and-platforms.md) | Architecture & platforms — Basecamp module + mobile | Proposed |
 | [0007](docs/adr/0007-app-integration-and-add-author.md) | App integration (contact picker) + "add author to contacts" | Proposed |
 | [0008](docs/adr/0008-keycard-support.md) | Keycard support — card-signed edits + card-backed contact identities | Proposed |
+| [0009](docs/adr/0009-device-pairing-and-membership.md) | Device pairing & membership — identity-rooted, key-wrapped, revocable | Proposed |
+| [0010](docs/adr/0010-storage-backed-seeding.md) | Durable snapshots & storage-backed seeding (Logos Storage / Codex) | Exploratory |
