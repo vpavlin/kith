@@ -81,3 +81,4 @@ proposals under [`docs/adr/`](docs/adr). Nothing is built yet. See
 | [0005](docs/adr/0005-vcard-interop.md) | vCard import/export + the `X-LOAM-KEY` extension | Proposed |
 | [0006](docs/adr/0006-architecture-and-platforms.md) | Architecture & platforms — Basecamp module + mobile | Proposed |
 | [0007](docs/adr/0007-app-integration-and-add-author.md) | App integration (contact picker) + "add author to contacts" | Proposed |
+| [0008](docs/adr/0008-keycard-support.md) | Keycard support — card-signed edits + card-backed contact identities | Proposed |
