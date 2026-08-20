@@ -10,6 +10,7 @@
 
 // Forward declaration for the internal store component (ported to std types).
 class ContactStore;
+class ContactSync;
 
 /**
  * KithImpl - Universal-pattern core module for the Kith address-book app (kith ADR
@@ -29,15 +30,17 @@ class ContactStore;
  * import/export (kith ADR 0005 - see src/vcard.hpp's own TODO list for exactly what
  * it does not yet handle).
  *
+ * Phase 4 (multi-device sync, kith ADR 0004/0006): a book's log now syncs over the
+ * loam_core transport facade (start/join/sendSealed/received), one content topic
+ * per book (`/kith/1/<bookId>/json`), sealed with AES-256-GCM (book key, byte-
+ * identical recipe to scala's CalendarSync), with RBSR catch-up (logos_sync/
+ * catchup.hpp + reconcile.hpp, vendored from scala) so a freshly-joined device
+ * pulls history instead of just future writes. See ContactSync (contact_sync.h)
+ * and this class's onContextReady()/publishAndApply()/applyIncoming()/onSyncReq()/
+ * sendSyncReq() - all 1:1 with scala_impl.cpp's equivalents.
+ *
  * OUT OF SCOPE for this core (left for later, following scala as the template when
  * it's time):
- *   - Sync/transport (kith ADR 0004: loam-transport over the shared node, SDS
- *     Reliable Channels). A book's log is written and folded LOCALLY ONLY right now;
- *     there is no CalendarSync-equivalent yet, so a book does not (yet) sync across
- *     your own devices, let alone with another person. Add it the way
- *     scala_impl.cpp's onContextReady()/CalendarSync does - one content topic per
- *     book (`/kith/1/<bookId>/...` per ADR 0006), vendoring
- *     logos_sync/catchup.hpp + reconcile.hpp for RBSR catch-up.
  *   - pickContact() (kith ADR 0007) - the shared contact-picker UI/intent other
  *     apps call. That is a VIEW concern (kith_ui) once it exists, not this core's.
  *   - Keycard-signed writes (kith ADR 0008) - deliberately deferred; the identity
@@ -113,6 +116,23 @@ public:
     /// Export a book (or a single contact if contactId is set) as a vCard 4.0 blob.
     std::string exportVcard(const std::string& bookId, const std::string& contactId = "");
 
+    // -- Sync / share API (kith ADR 0004/0006, Phase 4) ----------------------------
+    /// Current sync status for a book: "not_shared" | "syncing" | "offline".
+    std::string getSyncStatus(const std::string& bookId);
+    /// Build a kith://join?id=<bookId>&key=<b64url key>&name=<name> link for a book
+    /// (mirrors scala's generateShareLink). Returns "" if the book is unknown.
+    std::string shareLink(const std::string& bookId);
+    /// Parse a kith://join link. Returns JSON {id,key,name} or "" if malformed.
+    std::string parseShareLink(const std::string& link);
+    /// Handle a kith://join link: upsert the book, bind the identity (identityId or
+    /// the current default), start syncing and request catch-up. Returns false if
+    /// the link doesn't parse.
+    bool handleShareLink(const std::string& link, const std::string& identityId = "");
+    /// Connection + book diagnostics for a debug panel. JSON: {identity, ctxReady,
+    /// deliveryStatus, nodeReady, dataDir, bookCount, contactCount,
+    /// books:[{id,name,syncing,contacts}]}
+    std::string diagnostics();
+
     // -- Context lifecycle ---------------------------------------------------------
     /// Called when the module context is fully initialized (deps are live).
     void onContextReady() override;
@@ -128,19 +148,39 @@ logos_events:
     /// Emitted when the local device identity changes.
     void identityChanged();
 
+    /// Emitted when a book's sync status changes (mirrors scala's syncStatusChanged).
+    void syncStatusChanged(const std::string& bookId, const std::string& status);
+
 private:
     ContactStore* m_store = nullptr;
+    ContactSync* m_sync = nullptr;
     std::string m_identity;      // == m_signId.address - device fallback author id
     kith::SignId m_signId;       // secp256k1 keypair; private key persisted in the kv store
     bool m_ctxReady = false;     // onContextReady() actually fired
+    std::string m_deliveryStatus; // last transport status (Connecting/Connected/error)
 
     // -- event-log CRDT helpers (mirrors scala_impl's mkEvent/publishAndApply) ----
     long long m_wall = 0;        // HLC clock
     long long m_ctr = 0;
     kith::HLC nextHlc();
     kith::Event mkEvent(const std::string& type, const kith::json& payload, const std::string& bookId = "");
-    // Persist locally (sync/broadcast is not wired up yet - see class doc).
+    // Persist locally, then broadcast (append-first: a redelivered/duplicate echo
+    // of our own event is a dedup no-op on the wire; a local disk write that never
+    // makes it to the network is still durable). Mirrors scala_impl's
+    // publishAndApply -> CalendarSync::sendEvent.
     void publishAndApply(const std::string& bookId, const kith::Event& e);
+    // Merge a received event's raw JSON into that book's log (idempotent, dedup by
+    // id). SYNC_REQ is intercepted here and routed to onSyncReq() instead of ever
+    // touching the store.
+    void applyIncoming(const std::string& bookId, const std::string& eventJson);
+    // -- catch-up (scala's SYNC_REQ + logos_sync::catchup) ------------------------
+    void onSyncReq(const std::string& bookId, const kith::json& req);  // serve ONLY the delta a peer lacks
+    void sendSyncReq(const std::string& bookId);   // publish our id-summary so peers serve our gap
+    // Idempotently (re)attempt the delivery bootstrap; called from onContextReady
+    // AND lazily from polled read methods (kym/scala self-drive pattern) so the
+    // node comes up even if the lifecycle hook is flaky or a book didn't exist yet
+    // at startup.
+    void ensureDelivery();
 
     // Find which book currently holds a given contact id (linear scan over every
     // book's fold) - used by getContact()/deleteContact() callers that only have an

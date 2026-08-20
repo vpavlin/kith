@@ -44,6 +44,13 @@ namespace ET {
     // contact.del is dropped, so a delete can never be silently resurrected by a
     // stale/racing edit.
     constexpr const char* CONTACT_DEL = "contact.del";
+    // {have:[id…], from} — CATCH-UP (kith Phase 4, mirrors scala::ET::SYNC_REQ): a
+    // joining/reconnecting peer publishes an RBSR range summary of the ids it
+    // already holds; peers serve ONLY the delta (logos_sync::catchup). NOT stored,
+    // NOT folded (foldBook below never matches this type so it's silently ignored
+    // even if one ever reached the log); handled in the receive path before the
+    // store, via KithImpl::onSyncReq().
+    constexpr const char* SYNC_REQ = "sync.req";
 }
 
 // fold: merged log -> book state {id, contacts:[...]}. contacts is sorted by id

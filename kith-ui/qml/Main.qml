@@ -56,7 +56,7 @@ Item {
     // discipline as Scala"): core + view are separate Basecamp packages.
     property bool coreOutOfDate: false
     property string coreVer: ""
-    readonly property string minCore: "0.1.0"
+    readonly property string minCore: "0.2.0"
     function verLt(a, b) {
         var pa = String(a).split("."), pb = String(b).split(".")
         for (var i = 0; i < 3; i++) { var x = parseInt(pa[i] || "0"), y = parseInt(pb[i] || "0"); if (x !== y) return x < y }
@@ -227,7 +227,11 @@ Item {
                             anchors.fill: parent; anchors.leftMargin: Theme.spacing.small; anchors.rightMargin: Theme.spacing.small; spacing: Theme.spacing.small
                             ColumnLayout {
                                 Layout.fillWidth: true; Layout.alignment: Qt.AlignVCenter; spacing: 1
-                                LogosText { text: modelData.name || "(unnamed)"; color: Theme.palette.text; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
+                                RowLayout {
+                                    Layout.fillWidth: true; spacing: 4
+                                    LogosText { text: modelData.name || "(unnamed)"; color: Theme.palette.text; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
+                                    LogosText { visible: !!modelData.syncing; text: "🔄"; font.pixelSize: 11 }
+                                }
                                 LogosText {
                                     text: modelData.contactCount + " contact" + (modelData.contactCount === 1 ? "" : "s")
                                           + (modelData.authorAddr ? "  ·  " + root.shortAddr(modelData.authorAddr) : "")
@@ -255,7 +259,11 @@ Item {
                     color: Theme.palette.textTertiary; font.pixelSize: 12
                 }
 
-                LogosButton { Layout.fillWidth: true; text: "+ New book"; onClicked: newBookPopup.open() }
+                RowLayout {
+                    Layout.fillWidth: true; spacing: Theme.spacing.small
+                    LogosButton { Layout.fillWidth: true; text: "+ New book"; onClicked: newBookPopup.open() }
+                    LogosButton { Layout.fillWidth: true; text: "Join…"; onClicked: joinBookPopup.open() }
+                }
             }
         }
 
@@ -288,6 +296,10 @@ Item {
                         text: root.bookById(root.selectedBookId) ? root.bookById(root.selectedBookId).name : ""
                         color: Theme.palette.text; font.pixelSize: 20; font.weight: Theme.typography.weightMedium
                         Layout.fillWidth: true; elide: Text.ElideRight
+                    }
+                    LogosButton {
+                        text: "Share…"
+                        onClicked: { root.shareLinkText = String(root.j(root.core("shareLink", [root.selectedBookId]), "")); sharePopup.open() }
                     }
                     LogosButton { text: "Import vCard"; onClicked: importPopup.open() }
                     LogosButton {
@@ -678,6 +690,68 @@ Item {
                         var res = root.j(root.core("importVcard", [root.selectedBookId, vcardInput.text]), { imported: 0 })
                         root.importResult = "Imported " + (res.imported || 0) + " contact(s)."
                         root.refresh()
+                    }
+                }
+            }
+        }
+    }
+
+    // ── share popup (kith Phase 4: sync) — copyable kith://join… link ──────────
+    property string shareLinkText: ""
+    TextEdit { id: shareClipHelper; visible: false; text: root.shareLinkText }
+    Popup {
+        id: sharePopup
+        anchors.centerIn: Overlay.overlay
+        width: 460; modal: true; padding: Theme.spacing.large
+        background: Rectangle { radius: Theme.spacing.radiusMedium; color: Theme.palette.backgroundElevated; border.width: 1; border.color: Theme.palette.borderHairline }
+        ColumnLayout {
+            anchors.fill: parent; spacing: Theme.spacing.small
+            LogosText { text: "Share this book"; color: Theme.palette.text; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
+            LogosText {
+                text: "Anyone with this link can join and sync this book's contacts. Send it over a trusted channel."
+                color: Theme.palette.textTertiary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true
+            }
+            Field { id: shareLinkField; Layout.fillWidth: true; readOnly: true; text: root.shareLinkText }
+            RowLayout {
+                Layout.fillWidth: true; spacing: Theme.spacing.small
+                LogosButton {
+                    text: "Copy"
+                    onClicked: { shareClipHelper.text = root.shareLinkText; shareClipHelper.selectAll(); shareClipHelper.copy() }
+                }
+                Item { Layout.fillWidth: true }
+                LogosButton { text: "Close"; onClicked: sharePopup.close() }
+            }
+        }
+    }
+
+    // ── join popup (kith Phase 4: sync) — paste a kith://join… link ────────────
+    property string joinResult: ""
+    Popup {
+        id: joinBookPopup
+        anchors.centerIn: Overlay.overlay
+        width: 460; modal: true; padding: Theme.spacing.large
+        background: Rectangle { radius: Theme.spacing.radiusMedium; color: Theme.palette.backgroundElevated; border.width: 1; border.color: Theme.palette.borderHairline }
+        onOpened: { joinLinkField.text = ""; root.joinResult = "" }
+        ColumnLayout {
+            anchors.fill: parent; spacing: Theme.spacing.small
+            LogosText { text: "Join a shared book"; color: Theme.palette.text; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
+            LogosText { text: "Paste a kith://join… link below."; color: Theme.palette.textTertiary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Field { id: joinLinkField; Layout.fillWidth: true; placeholderText: "kith://join?id=…&key=…&name=…" }
+            LogosText { visible: root.joinResult !== ""; text: root.joinResult; color: Theme.palette.primary; font.pixelSize: 12; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            RowLayout {
+                Layout.fillWidth: true; spacing: Theme.spacing.small
+                Item { Layout.fillWidth: true }
+                LogosButton { text: "Close"; onClicked: joinBookPopup.close() }
+                LogosButton {
+                    text: "Join"; enabled: joinLinkField.text.trim().length > 0
+                    onClicked: {
+                        var ok = root.core("handleShareLink", [joinLinkField.text.trim(), root.defaultIdentityId])
+                        if (ok === true || ok === "true") {
+                            root.joinResult = "Joined — syncing now."
+                            root.refresh()
+                        } else {
+                            root.joinResult = "Couldn't parse that link."
+                        }
                     }
                 }
             }

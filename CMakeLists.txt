@@ -18,6 +18,9 @@ logos_module(
         src/kith_impl.h
         src/kith_impl.cpp
         src/contact_store.cpp
+        src/contact_sync.h
+        src/contact_sync.cpp
+        src/logos_transport.hpp
     INCLUDE_DIRS src
     LINK_LIBRARIES OpenSSL::Crypto
 )
