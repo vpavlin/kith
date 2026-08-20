@@ -3,6 +3,7 @@
 // not hand-typed here in v1).
 import React, { useEffect, useState } from "react";
 import { Modal, View, Text, TextInput, Pressable, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Contact } from "../lib/store";
 
 const C = {
@@ -46,13 +47,14 @@ export function ContactModal({
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView style={s.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <SafeAreaView style={s.root} edges={["top", "left", "right", "bottom"]}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={s.header}>
-          <Pressable onPress={onClose}><Text style={s.headerBtn}>Cancel</Text></Pressable>
-          <Text style={s.headerTitle}>{initial ? "Edit contact" : "New contact"}</Text>
-          <Pressable onPress={save}><Text style={[s.headerBtn, { color: C.accent, fontWeight: "700" }]}>Save</Text></Pressable>
+          <Pressable onPress={onClose} hitSlop={10}><Text style={s.headerBtn}>Cancel</Text></Pressable>
+          <Text style={s.headerTitle} numberOfLines={1}>{initial ? "Edit contact" : "New contact"}</Text>
+          <Pressable onPress={save} hitSlop={10}><Text style={[s.headerBtn, { color: C.accent, fontWeight: "700" }]}>Save</Text></Pressable>
         </View>
-        <ScrollView contentContainerStyle={s.body}>
+        <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
           <Text style={s.label}>Name</Text>
           <TextInput style={s.input} placeholder="Display name" placeholderTextColor={C.sub} value={draft.name.display} onChangeText={(v) => setName("display", v)} />
           <View style={s.row2}>
@@ -66,7 +68,7 @@ export function ContactModal({
             <View key={i} style={s.row2}>
               <TextInput style={[s.input, s.third]} placeholder="label" placeholderTextColor={C.sub} value={p.label} onChangeText={(v) => setRow("phones", i, "label", v)} />
               <TextInput style={[s.input, s.grow]} placeholder="number" placeholderTextColor={C.sub} keyboardType="phone-pad" value={p.value} onChangeText={(v) => setRow("phones", i, "value", v)} />
-              <Pressable onPress={() => delRow("phones", i)}><Text style={s.del}>✕</Text></Pressable>
+              <Pressable onPress={() => delRow("phones", i)} hitSlop={10}><Text style={s.del}>✕</Text></Pressable>
             </View>
           ))}
           <Pressable onPress={() => addRow("phones")}><Text style={s.add}>+ add phone</Text></Pressable>
@@ -76,7 +78,7 @@ export function ContactModal({
             <View key={i} style={s.row2}>
               <TextInput style={[s.input, s.third]} placeholder="label" placeholderTextColor={C.sub} value={e.label} onChangeText={(v) => setRow("emails", i, "label", v)} />
               <TextInput style={[s.input, s.grow]} placeholder="email" placeholderTextColor={C.sub} keyboardType="email-address" autoCapitalize="none" value={e.value} onChangeText={(v) => setRow("emails", i, "value", v)} />
-              <Pressable onPress={() => delRow("emails", i)}><Text style={s.del}>✕</Text></Pressable>
+              <Pressable onPress={() => delRow("emails", i)} hitSlop={10}><Text style={s.del}>✕</Text></Pressable>
             </View>
           ))}
           <Pressable onPress={() => addRow("emails")}><Text style={s.add}>+ add email</Text></Pressable>
@@ -86,7 +88,7 @@ export function ContactModal({
             <View key={i} style={s.row2}>
               <TextInput style={[s.input, s.third]} placeholder="kind" placeholderTextColor={C.sub} value={h.kind} onChangeText={(v) => setRow("handles", i, "kind", v)} />
               <TextInput style={[s.input, s.grow]} placeholder="@handle" placeholderTextColor={C.sub} autoCapitalize="none" value={h.value} onChangeText={(v) => setRow("handles", i, "value", v)} />
-              <Pressable onPress={() => delRow("handles", i)}><Text style={s.del}>✕</Text></Pressable>
+              <Pressable onPress={() => delRow("handles", i)} hitSlop={10}><Text style={s.del}>✕</Text></Pressable>
             </View>
           ))}
           <Pressable onPress={() => addRow("handles")}><Text style={s.add}>+ add handle</Text></Pressable>
@@ -109,6 +111,7 @@ export function ContactModal({
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+      </SafeAreaView>
     </Modal>
   );
 }

@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Modal, View, Text, Pressable, StyleSheet } from "react-native";
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from "expo-camera";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const C = { bg: "#1e1e2e", text: "#cdd6f4", sub: "#9399b2", primary: "#89b4fa" };
 
@@ -9,6 +10,7 @@ export function ScanModal({ visible, onScanned, onClose }: {
   visible: boolean; onScanned: (data: string) => void; onClose: () => void;
 }) {
   const [permission, requestPermission] = useCameraPermissions();
+  const insets = useSafeAreaInsets();
   const done = useState({ v: false })[0]; // guard against duplicate scans
 
   React.useEffect(() => {
@@ -40,9 +42,9 @@ export function ScanModal({ visible, onScanned, onClose }: {
             <Pressable style={s.btn} onPress={requestPermission}><Text style={s.btnT}>Grant permission</Text></Pressable>
           </View>
         )}
-        <View style={s.overlay}>
+        <View style={[s.overlay, { bottom: 40 + insets.bottom }]}>
           <Text style={s.hint}>Point at a Kith invite QR</Text>
-          <Pressable style={s.cancel} onPress={onClose}><Text style={s.cancelT}>Cancel</Text></Pressable>
+          <Pressable style={s.cancel} onPress={onClose} hitSlop={8}><Text style={s.cancelT}>Cancel</Text></Pressable>
         </View>
       </View>
     </Modal>

@@ -149,18 +149,18 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={s.root} edges={["top", "left", "right"]}>
+      <SafeAreaView style={s.root} edges={["top", "left", "right", "bottom"]}>
         <StatusBar style="light" />
         <SharedNodeStatus appName="Kith" showSync />
 
         {/* ── header ─────────────────────────────────────────────────────── */}
         <View style={s.header}>
           {activeBook ? (
-            <Pressable onPress={() => setActiveBookId(null)}><Text style={s.back}>‹ Books</Text></Pressable>
+            <Pressable onPress={() => setActiveBookId(null)} hitSlop={10}><Text style={s.back}>‹ Books</Text></Pressable>
           ) : (
             <Text style={s.title}>Kith</Text>
           )}
-          <Text style={s.statusChip}>{status}</Text>
+          <Text style={s.statusChip} numberOfLines={1} ellipsizeMode="tail">{status}</Text>
         </View>
 
         {!activeBook && (
@@ -177,6 +177,8 @@ export default function App() {
 
             {query.trim() ? (
               <FlatList
+                style={s.list}
+                contentContainerStyle={s.listContent}
                 data={searchResults}
                 keyExtractor={(item) => item.contact.id}
                 renderItem={({ item }) => (
@@ -184,8 +186,8 @@ export default function App() {
                     style={s.contactRow}
                     onPress={() => { setActiveBookId(item.bookId); setQuery(""); setTimeout(() => setContactModal({ open: true, editing: item.contact }), 0); }}
                   >
-                    <Text style={s.contactName}>{item.contact.name?.display || "(no name)"}</Text>
-                    <Text style={s.contactSub}>
+                    <Text style={s.contactName} numberOfLines={1}>{item.contact.name?.display || "(no name)"}</Text>
+                    <Text style={s.contactSub} numberOfLines={1}>
                       {books.find((b) => b.id === item.bookId)?.name || item.bookId}
                     </Text>
                   </Pressable>
@@ -195,16 +197,18 @@ export default function App() {
             ) : (
               <>
                 <FlatList
+                  style={s.list}
+                  contentContainerStyle={s.listContent}
                   data={books}
                   keyExtractor={(b) => b.id}
                   renderItem={({ item }) => (
                     <Pressable style={s.bookRow} onPress={() => setActiveBookId(item.id)}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.bookName}>{item.name}</Text>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={s.bookName} numberOfLines={1}>{item.name}</Text>
                         <Text style={s.contactSub}>{item.contactCount ?? 0} contact{item.contactCount === 1 ? "" : "s"}</Text>
                       </View>
-                      <Pressable onPress={() => setShareBook(item)} style={s.iconBtn}><Text style={s.iconBtnT}>Share</Text></Pressable>
-                      <Pressable onPress={() => onDeleteBook(item)} style={s.iconBtn}><Text style={[s.iconBtnT, { color: C.danger }]}>Remove</Text></Pressable>
+                      <Pressable onPress={() => setShareBook(item)} style={s.iconBtn} hitSlop={8}><Text style={s.iconBtnT}>Share</Text></Pressable>
+                      <Pressable onPress={() => onDeleteBook(item)} style={s.iconBtn} hitSlop={8}><Text style={[s.iconBtnT, { color: C.danger }]}>Remove</Text></Pressable>
                     </Pressable>
                   )}
                   ListEmptyComponent={<Text style={s.empty}>No books yet. Create one, or join with an invite link.</Text>}
@@ -234,12 +238,14 @@ export default function App() {
               <TextInput style={s.search} placeholder="Search this book…" placeholderTextColor={C.sub} value={query} onChangeText={setQuery} />
             </View>
             <FlatList
+              style={s.list}
+              contentContainerStyle={s.listContent}
               data={query.trim() ? contacts.filter((c) => (c.name?.display || "").toLowerCase().includes(query.toLowerCase())) : contacts}
               keyExtractor={(c) => c.id}
               renderItem={({ item }) => (
                 <Pressable style={s.contactRow} onPress={() => setContactModal({ open: true, editing: item })} onLongPress={() => onExportOne(item)}>
-                  <Text style={s.contactName}>{item.name?.display || "(no name)"}</Text>
-                  {!!item.phones?.length && <Text style={s.contactSub}>{item.phones[0].value}</Text>}
+                  <Text style={s.contactName} numberOfLines={1}>{item.name?.display || "(no name)"}</Text>
+                  {!!item.phones?.length && <Text style={s.contactSub} numberOfLines={1}>{item.phones[0].value}</Text>}
                   {item.loamIdentity && <Text style={s.contactBadge}>loam</Text>}
                 </Pressable>
               )}
@@ -265,14 +271,14 @@ export default function App() {
         <QRModal visible={!!shareBook} value={shareBook ? buildInvite(shareBook) : ""} title={`Share "${shareBook?.name ?? ""}"`} onClose={() => setShareBook(null)} />
 
         <Modal visible={showNewBook} animationType="slide" transparent onRequestClose={() => setShowNewBook(false)}>
-          <View style={s.backdrop}>
+          <KeyboardAvoidingView style={s.backdrop} behavior={Platform.OS === "ios" ? "padding" : undefined}>
             <View style={s.sheet}>
               <Text style={s.sheetTitle}>New book</Text>
               <TextInput style={s.input} placeholder="Book name" placeholderTextColor={C.sub} value={newBookName} onChangeText={setNewBookName} autoFocus />
               <Pressable style={s.primaryBtn} onPress={onCreateBook}><Text style={s.primaryBtnT}>Create</Text></Pressable>
               <Pressable style={s.textBtn} onPress={() => setShowNewBook(false)}><Text style={s.textBtnT}>Cancel</Text></Pressable>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </Modal>
 
         <Modal visible={showJoin} animationType="slide" transparent onRequestClose={() => setShowJoin(false)}>
@@ -294,7 +300,7 @@ export default function App() {
             <View style={s.sheet}>
               <Text style={s.sheetTitle}>Import vCard</Text>
               <Text style={s.sheetSub}>Paste one or more BEGIN:VCARD…END:VCARD blocks.</Text>
-              <TextInput style={[s.input, { minHeight: 140, textAlignVertical: "top" }]} multiline value={importText} onChangeText={setImportText} placeholder="BEGIN:VCARD..." placeholderTextColor={C.sub} />
+              <TextInput style={[s.input, { minHeight: 140, maxHeight: 200, textAlignVertical: "top" }]} multiline value={importText} onChangeText={setImportText} placeholder="BEGIN:VCARD..." placeholderTextColor={C.sub} />
               <Pressable style={s.primaryBtn} onPress={onImportVcard}><Text style={s.primaryBtnT}>Import</Text></Pressable>
               <Pressable style={s.textBtn} onPress={() => setShowImport(false)}><Text style={s.textBtnT}>Cancel</Text></Pressable>
             </View>
@@ -320,28 +326,30 @@ export default function App() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, minHeight: 44, gap: 8 },
   title: { color: C.text, fontSize: 22, fontWeight: "800" },
-  back: { color: C.primary, fontSize: 16 },
-  statusChip: { color: C.sub, fontSize: 11, textTransform: "uppercase" },
+  back: { color: C.primary, fontSize: 16, paddingVertical: 8 },
+  statusChip: { color: C.sub, fontSize: 11, textTransform: "uppercase", flexShrink: 1, textAlign: "right" },
   bookTitleBig: { color: C.text, fontSize: 20, fontWeight: "800", paddingHorizontal: 16, marginBottom: 4 },
   searchRow: { paddingHorizontal: 16, marginBottom: 8 },
   search: { backgroundColor: C.surface, color: C.text, borderRadius: 10, padding: 10, borderWidth: 1, borderColor: C.border },
-  bookRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border },
+  list: { flex: 1 },
+  listContent: { flexGrow: 1, paddingBottom: 12 },
+  bookRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border, minHeight: 44 },
   bookName: { color: C.text, fontSize: 16, fontWeight: "700" },
-  contactRow: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border, flexDirection: "row", alignItems: "center", gap: 8 },
+  contactRow: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border, flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 },
   contactName: { color: C.text, fontSize: 15, fontWeight: "600", flex: 1 },
-  contactSub: { color: C.sub, fontSize: 12 },
-  contactBadge: { color: C.accent, fontSize: 10, fontWeight: "700", borderWidth: 1, borderColor: C.accent, borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 },
-  empty: { color: C.sub, textAlign: "center", marginTop: 40 },
-  iconBtn: { paddingHorizontal: 8, paddingVertical: 6 },
+  contactSub: { color: C.sub, fontSize: 12, flexShrink: 1 },
+  contactBadge: { color: C.accent, fontSize: 10, fontWeight: "700", borderWidth: 1, borderColor: C.accent, borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, flexShrink: 0 },
+  empty: { color: C.sub, textAlign: "center", marginTop: 40, paddingHorizontal: 16 },
+  iconBtn: { paddingHorizontal: 8, paddingVertical: 10 },
   iconBtnT: { color: C.primary, fontSize: 12, fontWeight: "700" },
-  footerRow: { flexDirection: "row", gap: 10, paddingHorizontal: 16, paddingVertical: 8 },
-  footerBtn: { flex: 1, backgroundColor: C.primary, borderRadius: 10, paddingVertical: 12, alignItems: "center" },
+  footerRow: { flexDirection: "row", gap: 10, paddingHorizontal: 16, paddingVertical: 8, flexWrap: "wrap" },
+  footerBtn: { flex: 1, minWidth: 100, backgroundColor: C.primary, borderRadius: 10, paddingVertical: 12, alignItems: "center" },
   footerBtnT: { color: C.bg, fontWeight: "700", fontSize: 13 },
-  deviceId: { color: C.sub, fontSize: 10, textAlign: "center", marginTop: 4, marginBottom: 10 },
+  deviceId: { color: C.sub, fontSize: 10, textAlign: "center", marginTop: 4, marginBottom: 4, paddingHorizontal: 16 },
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: C.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20 },
+  sheet: { backgroundColor: C.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20, maxHeight: "88%" },
   sheetTitle: { color: C.text, fontSize: 18, fontWeight: "700", marginBottom: 4 },
   sheetSub: { color: C.sub, fontSize: 12, marginBottom: 10 },
   input: { backgroundColor: C.bg, color: C.text, borderRadius: 10, padding: 12, marginTop: 10, borderWidth: 1, borderColor: C.border },
