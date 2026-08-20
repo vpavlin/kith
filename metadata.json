@@ -1,0 +1,33 @@
+{
+  "name": "kith",
+  "display_name": "Kith Core",
+  "icon": "icon.png",
+  "version": "0.1.0",
+  "type": "core",
+  "category": "general",
+  "description": "Contacts and address book module for Logos Core",
+  "main": "kith_plugin",
+  "interface": "universal",
+  "dependencies": [
+    "loam_core"
+  ],
+  "nix": {
+    "packages": {
+      "build": [],
+      "runtime": []
+    },
+    "external_libraries": [],
+    "cmake": {
+      "find_packages": [
+        "OpenSSL"
+      ],
+      "extra_sources": [],
+      "extra_include_dirs": [
+        "src"
+      ],
+      "extra_link_libraries": [
+        "OpenSSL::Crypto"
+      ]
+    }
+  }
+}
