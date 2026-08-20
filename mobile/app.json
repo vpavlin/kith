@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Kith",
+    "slug": "kith",
+    "scheme": "kith",
+    "version": "0.1.0",
+    "platforms": [
+      "android"
+    ],
+    "icon": "./assets/icon.png",
+    "android": {
+      "package": "xyz.vpavlin.kith",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#11111b"
+      }
+    },
+    "plugins": [
+      "./plugins/withLogosDelivery",
+      "./plugins/withReleaseSigning",
+      "expo-secure-store",
+      "expo-camera",
+      "./src/lib/loam-transport-pkg/plugins/withDeliveryClient.js"
+    ],
+    "extra": {
+      "comment": "versionCode here is source of truth; assert it matches android/app/build.gradle after prebuild."
+    }
+  }
+}
