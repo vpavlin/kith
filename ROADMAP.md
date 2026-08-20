@@ -13,7 +13,7 @@ self-contained task (often handed to a Sonnet subagent), verified and published 
 | 3 | **Package + publish** — build `kith` + `kith_ui` `.lgx`, publish to LAN + public Basecamp repos, verify installable | Opus | ✅ published (`0.1.0`) |
 | 4 | **Sync** — loam-transport, one content topic per book, share/join a book (invite link), catch-up; the CalendarSync pattern from scala | Sonnet | ✅ published (`0.2.0`) |
 | 5 | **Android app** — React-Native/Expo app on loam-transport + logos-sync, with the contact fold reimplemented in TS in lockstep with `kith_engine.hpp` (ADR 0006), published to F-Droid; the scala/qaku/kym mobile pattern (skills: logos-mobile-app, loam-integrate-app) | Sonnet | ▶ building |
-| 6 | **Polish** — keycard-signed writes (ADR 0008), `pickContact()` for cross-app (Scala editors / Qaku admins, ADR 0007), avatar bounding, full vCard (line folding, PHOTO), device pairing (ADR 0009) | mixed | ⏳ |
+| 6 | **Polish** — keycard-signed writes via a unified `loam_core.signAsync` (one async signing path for device/soft/keycard, so apps stop reimplementing the tap flow and kith stops silently device-signing a keycard book) (ADR 0008), `pickContact()` for cross-app (Scala editors / Qaku admins, ADR 0007), avatar bounding, full vCard (line folding, PHOTO), device pairing (ADR 0009) | mixed | ⏳ |
 
 **MVP = phases 1–3** (usable, local, installable on desktop). Phase 4 makes it multi-device, phase 5
 brings the phone (and needs a **shared-fold conformance test** so the TS and C++ folds can't drift —
