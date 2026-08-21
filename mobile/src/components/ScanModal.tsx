@@ -4,7 +4,7 @@ import { Modal, View, Text, Pressable, StyleSheet } from "react-native";
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from "expo-camera";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const C = { bg: "#1e1e2e", text: "#cdd6f4", sub: "#9399b2", primary: "#89b4fa" };
+const C = { bg: "#1B1509", text: "#EBDEC2", sub: "#B7A582", primary: "#CB9E60" };
 
 export function ScanModal({ visible, onScanned, onClose }: {
   visible: boolean; onScanned: (data: string) => void; onClose: () => void;

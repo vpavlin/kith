@@ -4,7 +4,7 @@ import { Modal, View, Text, Pressable, StyleSheet, useWindowDimensions } from "r
 import QRCode from "react-native-qrcode-svg";
 import * as Clipboard from "expo-clipboard";
 
-const C = { bg: "#1e1e2e", surface: "#2a2a3c", text: "#cdd6f4", sub: "#9399b2", primary: "#89b4fa", border: "#313244", accent: "#a6e3a1" };
+const C = { bg: "#1B1509", surface: "#241C11", text: "#EBDEC2", sub: "#B7A582", primary: "#CB9E60", border: "#33291A", accent: "#95B56C" };
 
 export function QRModal({ visible, value, title, onClose }: {
   visible: boolean; value: string; title: string; onClose: () => void;

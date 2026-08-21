@@ -7,8 +7,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Contact } from "../lib/store";
 
 const C = {
-  bg: "#1e1e2e", surface: "#2a2a3c", text: "#cdd6f4", sub: "#9399b2",
-  primary: "#89b4fa", border: "#313244", accent: "#a6e3a1", danger: "#f38ba8",
+  bg: "#1B1509", surface: "#241C11", text: "#EBDEC2", sub: "#B7A582",
+  primary: "#CB9E60", border: "#33291A", accent: "#95B56C", danger: "#CE5C4C",
 };
 
 export type ContactDraft = Omit<Contact, "id" | "createdAt" | "updatedAt" | "authorAddr">;

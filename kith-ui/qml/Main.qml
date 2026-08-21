@@ -26,6 +26,16 @@ Item {
     width: 960
     height: 660
 
+    // ── Kith brand accents (mirror brand/kith-brand.html) ──────────────────────
+    // The neutral base stays Logos.Theme (design-system rule); these are mid-tones
+    // chosen to read on BOTH Basecamp light and dark, used only for brand moments.
+    readonly property color kGilt:     "#AD8020"   // gilt — headers / selection / brand
+    readonly property color kUmber:    "#8A6A3F"   // umber — warm structural accent
+    readonly property color kSprout:   "#6E9047"   // sprout — the Loam tie (identity)
+    readonly property color kRubric:   "#A5392B"   // rubric — warnings
+    readonly property color kInk:      "#F1E7CE"   // cream — text on a colored fill
+    readonly property color kGiltSoft: Qt.rgba(0.68, 0.50, 0.13, 0.16) // subtle selection wash
+
     // ── core bridge ──────────────────────────────────────────────────────────
     property bool ready: false
     function core(method, args) {
@@ -188,13 +198,13 @@ Item {
         anchors { top: parent.top; left: parent.left; right: parent.right }
         height: visible ? bannerCol.implicitHeight + 18 : 0
         z: 9999
-        color: "#f38ba8"
+        color: root.kRubric
         ColumnLayout {
             id: bannerCol
             anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; leftMargin: 16; rightMargin: 16 }
             spacing: 1
-            LogosText { text: "⚠  Kith core is out of date" + (root.coreVer ? " (v" + root.coreVer + ")" : ""); color: "#11111b"; font.pixelSize: 14 }
-            LogosText { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "Update the 'kith' package to " + root.minCore + "+ in Basecamp."; color: "#11111b"; font.pixelSize: 12 }
+            LogosText { text: "⚠  Kith core is out of date" + (root.coreVer ? " (v" + root.coreVer + ")" : ""); color: root.kInk; font.pixelSize: 14 }
+            LogosText { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "Update the 'kith' package to " + root.minCore + "+ in Basecamp."; color: root.kInk; font.pixelSize: 12 }
         }
     }
 
@@ -213,7 +223,7 @@ Item {
                 anchors.margins: Theme.spacing.medium
                 spacing: Theme.spacing.small
 
-                LogosText { text: "Books"; color: Theme.palette.text; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
+                LogosText { text: "Books"; color: root.kGilt; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
 
                 ListView {
                     Layout.fillWidth: true; Layout.fillHeight: true; clip: true
@@ -222,7 +232,7 @@ Item {
                     delegate: Rectangle {
                         width: ListView.view.width; height: 44
                         radius: Theme.spacing.radiusSmall
-                        color: root.selectedBookId === modelData.id ? Theme.palette.backgroundSecondary : "transparent"
+                        color: root.selectedBookId === modelData.id ? root.kGiltSoft : "transparent"
                         RowLayout {
                             anchors.fill: parent; anchors.leftMargin: Theme.spacing.small; anchors.rightMargin: Theme.spacing.small; spacing: Theme.spacing.small
                             ColumnLayout {
@@ -377,11 +387,12 @@ Item {
                     model: root.identities
                     Rectangle {
                         radius: Theme.spacing.radiusSmall
-                        color: (root.newBookIdentity === modelData.id || (root.newBookIdentity === "" && modelData.id === root.defaultIdentityId)) ? Theme.palette.primary : Theme.palette.backgroundSecondary
+                        readonly property bool chipSel: (root.newBookIdentity === modelData.id || (root.newBookIdentity === "" && modelData.id === root.defaultIdentityId))
+                        color: chipSel ? root.kGilt : Theme.palette.backgroundSecondary
                         border.width: 1
-                        border.color: (root.newBookIdentity === modelData.id || (root.newBookIdentity === "" && modelData.id === root.defaultIdentityId)) ? Theme.palette.primary : Theme.palette.borderHairline
+                        border.color: chipSel ? root.kGilt : Theme.palette.borderHairline
                         implicitHeight: nbChipT.implicitHeight + 10; implicitWidth: nbChipT.implicitWidth + 22
-                        LogosText { id: nbChipT; anchors.centerIn: parent; text: modelData.label; font.pixelSize: 12; color: Theme.palette.text }
+                        LogosText { id: nbChipT; anchors.centerIn: parent; text: modelData.label; font.pixelSize: 12; color: parent.chipSel ? "#2A2118" : Theme.palette.text }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.newBookIdentity = modelData.id }
                     }
                 }

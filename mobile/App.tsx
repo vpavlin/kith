@@ -24,9 +24,12 @@ import { ScanModal } from "./src/components/ScanModal";
 import { importVcard, exportOneVcard, exportManyVcard } from "./src/lib/vcard";
 import { shortAddr } from "./src/lib/identity";
 
+// Kith brand palette — "parchment & soil" (dark). Mirrors brand/kith-brand.html dark tokens:
+// warm near-black brown ground, cream ink, umber/gilt for actions, sprout-green for the loam tie.
 const C = {
-  bg: "#1e1e2e", surface: "#2a2a3c", text: "#cdd6f4", sub: "#9399b2",
-  primary: "#89b4fa", border: "#313244", accent: "#a6e3a1", danger: "#f38ba8",
+  bg: "#1B1509", surface: "#241C11", text: "#EBDEC2", sub: "#B7A582",
+  primary: "#CB9E60", border: "#33291A", accent: "#95B56C", danger: "#CE5C4C",
+  gilt: "#D9AC3E",
 };
 
 function msg(e: unknown): string { return e instanceof Error ? e.message : String(e); }
@@ -327,7 +330,7 @@ export default function App() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, minHeight: 44, gap: 8 },
-  title: { color: C.text, fontSize: 22, fontWeight: "800" },
+  title: { color: C.gilt, fontSize: 22, fontWeight: "800", letterSpacing: 0.5 },
   back: { color: C.primary, fontSize: 16, paddingVertical: 8 },
   statusChip: { color: C.sub, fontSize: 11, textTransform: "uppercase", flexShrink: 1, textAlign: "right" },
   bookTitleBig: { color: C.text, fontSize: 20, fontWeight: "800", paddingHorizontal: 16, marginBottom: 4 },
