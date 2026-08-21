@@ -42,8 +42,7 @@
     display:grid; place-items:center; background:linear-gradient(160deg,color-mix(in srgb,var(--umber) 78%,#000 4%),var(--umber));
     box-shadow:0 6px 22px var(--shadow),inset 0 0 0 1.5px rgba(255,240,205,.14); overflow:hidden}
   .emblem::before{content:""; position:absolute; inset:9%; border:1.5px solid rgba(240,225,190,.45); border-radius:16%}
-  .emblem .k{font-family:"UnifrakturMaguntia",serif; font-size:calc(var(--sz)*.62); line-height:1; margin-top:calc(var(--sz)*.02); position:relative; z-index:2;
-    background:linear-gradient(180deg,#F6ECCB,#E7C877 62%,var(--gilt)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent}
+  .emblem .k{display:block; position:relative; z-index:2}  /* the K is now a bbox-centered SVG path (matches the app icon) */
 
   /* hero */
   header{padding:72px 0 26px}
@@ -92,7 +91,7 @@
 <div class="wrap">
   <header>
     <div class="hero">
-      <div class="emblem" aria-hidden="true"><span class="k">K</span></div>
+      <div class="emblem" aria-hidden="true"><svg class="k" viewBox="0 0 512 512" width="66%" height="66%"><defs><linearGradient id="kg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6ECCB"/><stop offset="0.62" stop-color="#E7C877"/><stop offset="1" stop-color="#AD8020"/></linearGradient></defs><path transform="translate(99.33,390.92) scale(0.19022,-0.19022)" fill="url(#kg)" d="M1163 725Q1172 730 1172.5 739.5Q1173 749 1162 754Q1097 787 1046 923Q1005 1030 920.0 1064.5Q835 1099 755 1045Q674 991 672.0 876.5Q670 762 734 677Q869 489 845.0 369.5Q821 250 695 136Q543 -4 438.5 -25.5Q334 -47 232 88Q145 204 79 153Q54 135 40.5 149.0Q27 163 47 184Q56 193 138.0 262.0Q220 331 288.0 331.0Q356 331 442 226Q495 160 544.0 136.0Q593 112 653 163Q710 212 650.5 314.5Q591 417 483 537Q386 644 339.5 778.5Q293 913 320 1009Q377 1217 573.5 1337.5Q770 1458 997 1455Q1260 1457 1427.0 1299.5Q1594 1142 1602 917Q1605 805 1535.0 720.5Q1465 636 1364 582Q1333 566 1322.0 585.0Q1311 604 1338 619Q1440 682 1466.5 751.0Q1493 820 1490 928Q1484 1113 1349.0 1258.5Q1214 1404 995 1412Q726 1409 601.0 1226.0Q476 1043 605 842Q612 830 624 833Q636 838 635 852Q626 942 662.5 1042.0Q699 1142 822.5 1201.0Q946 1260 1079.0 1211.0Q1212 1162 1269 1050Q1313 962 1336.5 908.5Q1360 855 1390 859Q1413 863 1418.5 846.0Q1424 829 1401 817L1165 682Q1155 676 1155.0 667.0Q1155 658 1166 653Q1222 623 1273.0 531.0Q1324 439 1378 301Q1449 117 1567 160Q1599 174 1609.5 156.0Q1620 138 1589 119L1351 -34Q1342 -39 1333 -34Q1238 29 1178.0 130.0Q1118 231 1078 363Q1050 455 1003.0 504.5Q956 554 898 530Q870 520 862.0 538.0Q854 556 878 569Z"/></svg></div>
       <div>
         <p class="eyebrow">a bōc of names · built on Loam</p>
         <h1 class="wordmark">Kith</h1>
