@@ -2,6 +2,7 @@
 #include "logos_transport.hpp"
 
 #include <openssl/evp.h>
+#include <openssl/hmac.h>
 #include <openssl/rand.h>
 
 #include <cstdio>
@@ -42,12 +43,43 @@ void ContactSync::stopSync(const std::string &bookId) {
 
 void ContactSync::sendEvent(const std::string &bookId, const std::string &eventJson) {
     if (!m_activeTopics.count(bookId) || !m_tx || !m_tx->ready()) return;
-    std::string sealed = seal(bookId, eventJson);
+    // Derive the AEAD nonce from the event's stable id (logos-sync ADR 0011): a
+    // re-sent immutable event then seals byte-identically, so the fleet store dedups
+    // it instead of accumulating a fresh random-nonce copy every time. Every event
+    // carries a UUID `id` (mkEvent → generateUuid), including per-call SYNC_REQ
+    // frames, so control frames each get a distinct nonce and are never collapsed.
+    // Fallback to a random token if a frame ever arrives without an id.
+    std::string sealId;
+    auto j = nlohmann::json::parse(eventJson, nullptr, false);
+    if (j.is_object()) sealId = j.value("id", std::string());
+    if (sealId.empty()) {
+        unsigned char rnd[16];
+        RAND_bytes(rnd, 16);
+        static const char *hexd = "0123456789abcdef";
+        sealId.reserve(32);
+        for (int i = 0; i < 16; i++) { sealId += hexd[rnd[i] >> 4]; sealId += hexd[rnd[i] & 0xf]; }
+    }
+    std::string sealed = seal(bookId, eventJson, sealId);
     m_tx->send(topicForBook(bookId), sealed);
 }
 
+// Deterministic 12-byte AEAD nonce derived from a seal id (logos-sync ADR 0011).
+// Byte-identical to the phone's crypto.ts nonceFor() and to kym/qaku's scheme
+// (cipher-agnostic — kith keeps AES-256-GCM). The HMAC key is the same 32-byte AES
+// key the cipher uses; domain string is "kith/nonce/v1|".
+static std::vector<unsigned char> nonceFor(const std::vector<unsigned char> &key,
+                                           const std::string &sealId) {
+    std::string msg = "kith/nonce/v1|" + sealId;
+    unsigned char mac[32];
+    unsigned int maclen = 0;
+    HMAC(EVP_sha256(), key.data(), (int)key.size(),
+         (const unsigned char *)msg.data(), msg.size(), mac, &maclen);
+    return std::vector<unsigned char>(mac, mac + 12);
+}
+
 // ── Crypto (byte-identical to scala's CalendarSync::seal/open) ────────────────
-std::string ContactSync::seal(const std::string &bookId, const std::string &plaintext) {
+std::string ContactSync::seal(const std::string &bookId, const std::string &plaintext,
+                              const std::string &sealId) {
     auto it = m_activeTopics.find(bookId);
     if (it == m_activeTopics.end()) return plaintext; // fallback
 
@@ -56,8 +88,8 @@ std::string ContactSync::seal(const std::string &bookId, const std::string &plai
     for (size_t i = 0; i < 32 && i * 2 < keyHex.size(); i++)
         sscanf(keyHex.c_str() + i * 2, "%2hhx", &key[i]);
 
-    std::vector<unsigned char> nonce(12);
-    RAND_bytes(nonce.data(), 12);
+    // ADR 0011: nonce = HMAC-SHA256(key, "kith/nonce/v1|"+sealId)[0..11], NOT random.
+    std::vector<unsigned char> nonce = nonceFor(key, sealId);
 
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
     std::vector<unsigned char> ciphertext(plaintext.size() + 32);

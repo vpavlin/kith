@@ -72,6 +72,11 @@ private:
     OnEventReceived m_onEvent;
     OnSyncStatus m_onStatus;
 
-    std::string seal(const std::string &bookId, const std::string &plaintext);
+    // seal derives its AEAD nonce deterministically from `sealId` (logos-sync ADR
+    // 0011): nonce = HMAC-SHA256(key, "kith/nonce/v1|"+sealId)[0..11]. Pass the
+    // event's stable UUID id so a re-sent immutable event is byte-identical (the
+    // fleet store then dedups it). Cipher/AAD/wire layout are UNCHANGED.
+    std::string seal(const std::string &bookId, const std::string &plaintext,
+                     const std::string &sealId);
     std::optional<std::string> open(const std::string &bookId, const std::string &sealedBytes);
 };

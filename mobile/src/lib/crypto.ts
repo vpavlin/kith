@@ -9,14 +9,28 @@
 // test/crypto-parity.sh). The load-bearing quirk: C sscanf("%2hhx") parses a
 // dash-started window like "-a" as a SIGNED -10 → 0xf6, NOT 0. See crypto-derive.ts.
 import { gcm } from "@noble/ciphers/aes.js";
-import * as Crypto from "expo-crypto";
+import { hmac } from "@noble/hashes/hmac.js";
+import { sha256 } from "@noble/hashes/sha256.js";
 import { deriveKey } from "./crypto-derive";
+import { utf8Bytes } from "./utf8";
+
+/** Deterministic 12-byte AEAD nonce derived from a seal id (logos-sync ADR 0011).
+ *  Byte-identical to the desktop core (src/contact_sync.cpp nonceFor) and to
+ *  kym/qaku's scheme — the derivation is cipher-agnostic (kith stays AES-256-GCM).
+ *  The HMAC key is the same 32-byte AES key the cipher uses; domain "kith/nonce/v1|". */
+export function nonceFor(key: Uint8Array, sealId: string): Uint8Array {
+  return hmac(sha256, key, utf8Bytes(`kith/nonce/v1|${sealId}`)).slice(0, 12);
+}
 
 /** Seal plaintext bytes for a book: AES-256-GCM → nonce||tag||ciphertext,
- *  exactly the layout the desktop's open() expects. */
-export function seal(encryptionKey: string, plaintext: Uint8Array): Uint8Array {
+ *  exactly the layout the desktop's open() expects. The nonce is DERIVED from
+ *  `sealId` (ADR 0011): pass the event's stable UUID id so a re-sent immutable
+ *  event seals byte-identically and the fleet store dedups it instead of piling up
+ *  a fresh random-nonce copy each send. open() is unchanged (nonce rides the wire),
+ *  so old random-nonce messages still decrypt. */
+export function seal(encryptionKey: string, plaintext: Uint8Array, sealId: string): Uint8Array {
   const key = deriveKey(encryptionKey);
-  const nonce = Crypto.getRandomBytes(12); // real RNG (Hermes has no WebCrypto)
+  const nonce = nonceFor(key, sealId);
   // @noble gcm returns ciphertext||tag (tag appended). The desktop packs
   // nonce||tag||ciphertext, so we split noble's output and re-pack.
   const ctAndTag = gcm(key, nonce).encrypt(plaintext);

@@ -11,6 +11,7 @@
 //   • transport double-base64s the sealed bytes for the channel (publishSealed);
 //     on receive it hands candidate byte-arrays, we open() each with the book's
 //     key and take the first that authenticates.
+import * as Crypto from "expo-crypto";
 import * as transport from "./loam-transport";
 import { seal, open } from "./crypto";
 import { utf8Bytes, utf8Decode } from "./utf8";
@@ -125,7 +126,19 @@ export async function joinBook(bookId: string, encryptionKey: string): Promise<v
 export async function sendEvent(bookId: string, eventJson: string): Promise<void> {
   const route = routes.find((r) => r.bookId === bookId);
   if (!route) return; // not a shared book / no key on this device
-  const sealed = seal(route.encryptionKey, utf8Bytes(eventJson));
+  // Derive the seal nonce from the event's stable id (ADR 0011) so a re-sent
+  // immutable event is byte-identical → the fleet store dedups it. Every event JSON
+  // carries a UUID `id`; per-call SYNC_REQ frames each get a distinct id, so control
+  // frames are never collapsed. Fallback to a random token if `id` is ever missing.
+  let sealId = "";
+  try {
+    const parsed = JSON.parse(eventJson) as { id?: string };
+    if (parsed && typeof parsed.id === "string") sealId = parsed.id;
+  } catch {
+    // not JSON — fall through to random token
+  }
+  if (!sealId) sealId = Array.from(Crypto.getRandomBytes(16), (b) => b.toString(16).padStart(2, "0")).join("");
+  const sealed = seal(route.encryptionKey, utf8Bytes(eventJson), sealId);
   await transport.publishSealed(route.topic, sealed);
 }
 
