@@ -4,6 +4,7 @@
 // (kith_impl.cpp publishAndApply / applyIncoming) uses. Also parses/builds the
 // `kith://join` links the desktop uses to share a book's key (kith_impl.cpp
 // shareLink/parseShareLink).
+import { AppState } from "react-native";
 import * as Crypto from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
 import { fromByteArray, toByteArray } from "base64-js";
@@ -263,6 +264,24 @@ export async function startSyncing(shared?: boolean, onStatus?: (s: string) => v
   const pull = () => { sync.storeSync().catch(() => {}); };
   setTimeout(pull, 2000);
   setTimeout(pull, 12000);
+  startReconcile();
+}
+
+// Periodic catch-up while the app is in the foreground, and one round on every return to it. The
+// startup rounds alone left anything missed afterwards (sent while the app wasn't approved in Loam,
+// while offline, while Loam was down) unrecovered until kith restarted. Each round is a small
+// fingerprint per book; only missing events move. Same cadence as scala.
+const RECONCILE_MS = 45_000;
+let reconcileTimer: ReturnType<typeof setInterval> | null = null;
+let appStateSub: { remove: () => void } | null = null;
+async function reconcileAll(): Promise<void> {
+  if (AppState.currentState !== "active") return;   // idle in the background
+  for (const b of await store.getRegistry()) if (b.key) sendSyncReq(b.id).catch(() => {});
+}
+function startReconcile(): void {
+  if (reconcileTimer) return;   // idempotent — startSyncing can run again after a retry
+  reconcileTimer = setInterval(() => { reconcileAll().catch(() => {}); }, RECONCILE_MS);
+  appStateSub = AppState.addEventListener("change", (st) => { if (st === "active") reconcileAll().catch(() => {}); });
 }
 
 // ── tiny change bus so the UI can refresh after inbound/outbound edits ───────
