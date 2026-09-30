@@ -10,7 +10,10 @@
 // not a per-field diff (kith_engine.hpp's explicit v1 choice; field-level LWW is
 // future work). Keep this in lockstep with kith_engine.hpp; the golden-vector
 // parity test (test/parity.sh) guards the two against drift.
-import { verifyEvent, isSigned } from "./identity";
+import { verifyEvent, isSigned, canonicalMessage, addressFor, fromHex } from "./identity";
+import { sha256 } from "@noble/hashes/sha256";
+import { bytesToHex } from "@noble/hashes/utils";
+import { utf8Bytes } from "./utf8";
 
 // ── HLC (hybrid logical clock): total order wall → ctr → dev ─────────────────
 export interface HLC {
@@ -99,6 +102,33 @@ export interface FoldedBook {
   contacts: any[];
 }
 
+// ── verify memo ──────────────────────────────────────────────────────────────
+// secp256k1.verify is ~tens of ms per event on Hermes and every fold re-walks the
+// whole log, so cache the ECDSA result. Key = pub:sig:sha256(canonicalMessage) — the
+// exact bytes that were verified — with pub/sig first checked to be fixed-length hex so
+// no two distinct inputs can collide on the separator. verifyEvent() still runs the
+// address/author check on every call (cheap); only a cache MISS pays for the ECDSA.
+const HEX_PUB = /^[0-9a-f]{66}$/i; // 33B compressed secp256k1 key
+const HEX_SIG = /^[0-9a-f]{128}$/i; // 64B compact r‖s
+const VERIFY_MEMO_MAX = 20000;
+const verifyMemo = new Map<string, boolean>();
+function authorMatches(e: Event): boolean {
+  const dev = (e.hlc && e.hlc.dev) || e.dev;
+  return !!(e.type && e.id && dev && e.pub && addressFor(fromHex(e.pub)) === dev);
+}
+export function verifyEventCached(e: Event): boolean {
+  if (typeof e.pub !== "string" || typeof e.sig !== "string" || !HEX_PUB.test(e.pub) || !HEX_SIG.test(e.sig)) return false;
+  const key = e.pub.toLowerCase() + ":" + e.sig.toLowerCase() + ":" + bytesToHex(sha256(utf8Bytes(canonicalMessage(e))));
+  const hit = verifyMemo.get(key);
+  // A hit skips only the ECDSA; the author binding (hlc.dev||dev == address(pub)) and
+  // the required fields are re-checked every time.
+  if (hit !== undefined) return hit && authorMatches(e);
+  const ok = verifyEvent(e);
+  if (verifyMemo.size >= VERIFY_MEMO_MAX) verifyMemo.clear();
+  verifyMemo.set(key, ok);
+  return ok;
+}
+
 // ── fold: merged log → book state ────────────────────────────────────────────
 // Returns {id, contacts:[…]}. contact.set is a whole-record LWW upsert by
 // payload.id; contact.del is a TERMINAL tombstone. contacts is sorted by id to
@@ -115,7 +145,7 @@ export function foldBook(bookId: string, log: Event[]): FoldedBook {
     // forged event is dropped entirely, so a tampered/replayed write can never
     // enter the folded book.
     const signed = isSigned(e);
-    if (!signed || !verifyEvent(e)) continue;
+    if (!signed || !verifyEventCached(e)) continue;
     if (e.type === ET.CONTACT_SET) {
       const id: string = e.payload?.id ?? "";
       if (!id || tombstones.has(id)) continue; // tombstone terminal
