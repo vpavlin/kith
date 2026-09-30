@@ -3,6 +3,9 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <map>
+#include <set>
+#include <mutex>
 
 #include "kith_engine.hpp"
 #include "kith_identity.hpp"   // per-device secp256k1 signing identity (fallback signer)
@@ -185,6 +188,28 @@ private:
     // node comes up even if the lifecycle hook is flaky or a book didn't exist yet
     // at startup.
     void ensureDelivery();
+
+    // -- bound-identity ADDRESS cache (bookId -> loam_core identityForContainer
+    //    address). listBooks() must not make one BLOCKING cross-module call per book
+    //    on every 3 s view poll, and mkEvent() should not re-resolve the same binding
+    //    on every edit. Entries are refreshed ASYNC when older than kAddrTtlMs, and
+    //    invalidated on our own bindContainer (createBook / handleShareLink).
+    //    loam_core has no "binding changed" event, so a rebind done elsewhere shows
+    //    up within the TTL; mkEvent additionally self-corrects from the signature's
+    //    pubkey, so a stale entry never produces an event whose author != signer.
+    struct AddrEntry { std::string addr; long long at = 0; };
+    static constexpr long long kAddrTtlMs = 30000;
+    std::map<std::string, AddrEntry> m_addrCache;
+    std::set<std::string> m_addrInFlight;   // books with an async refresh outstanding
+    std::mutex m_addrMu;                     // async callbacks may land off-thread
+    void cacheAddr(const std::string& bookId, const std::string& addr);
+    void invalidateAddr(const std::string& bookId);
+    // Cached address (possibly stale) or "" if none; `fresh` reports TTL state.
+    std::string cachedAddr(const std::string& bookId, bool* fresh = nullptr);
+    // Fire-and-forget identityForContainerAsync (deduped per book).
+    void refreshAddrAsync(const std::string& bookId);
+    // Blocking resolve (mkEvent cache-miss only) - fills the cache.
+    std::string resolveAddrSync(const std::string& bookId);
 
     // Find which book currently holds a given contact id (linear scan over every
     // book's fold) - used by getContact()/deleteContact() callers that only have an

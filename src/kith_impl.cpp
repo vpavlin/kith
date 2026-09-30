@@ -138,33 +138,112 @@ kith::HLC KithImpl::nextHlc() {
 // loam_core able to sign. 1:1 with scala_impl.cpp's mkEvent - see that file if this
 // ever needs the keycard-aware async path scala has (kith ADR 0008, deliberately
 // deferred here).
+// "0x" + last 20 bytes of sha256(compressed pub) - the same derivation verifyEvent
+// checks (kith_identity.hpp). "" when pubHex isn't a 33-byte key.
+static std::string addrFromPubHex(const std::string& pubHex) {
+    kith::Bytes pub = kith::fromHexB(pubHex);
+    if (pub.size() != 33) return std::string();
+    kith::Bytes h = kith::sha256b(pub);
+    return "0x" + kith::toHexS(h.data(), 32).substr(24, 40);
+}
+
+// -- bound-identity address cache (see kith_impl.h) ----------------------------------
+void KithImpl::cacheAddr(const std::string& bookId, const std::string& addr) {
+    std::lock_guard<std::mutex> lk(m_addrMu);
+    m_addrCache[bookId] = AddrEntry{ addr, nowMs() };
+}
+void KithImpl::invalidateAddr(const std::string& bookId) {
+    std::lock_guard<std::mutex> lk(m_addrMu);
+    m_addrCache.erase(bookId);
+}
+std::string KithImpl::cachedAddr(const std::string& bookId, bool* fresh) {
+    std::lock_guard<std::mutex> lk(m_addrMu);
+    auto it = m_addrCache.find(bookId);
+    if (it == m_addrCache.end()) { if (fresh) *fresh = false; return std::string(); }
+    if (fresh) *fresh = (nowMs() - it->second.at) < kAddrTtlMs;
+    return it->second.addr;
+}
+static std::string addrFromIdentityJson(const std::string& ir) {
+    if (ir.empty()) return std::string();
+    json meta = json::parse(ir, nullptr, false);
+    return meta.is_object() ? meta.value("address", std::string()) : std::string();
+}
+void KithImpl::refreshAddrAsync(const std::string& bookId) {
+    {
+        std::lock_guard<std::mutex> lk(m_addrMu);
+        if (!m_addrInFlight.insert(bookId).second) return;   // already outstanding
+    }
+    try {
+        modules().loam_core.identityForContainerAsync(bookId, [this, bookId](std::string ir) {
+            std::string addr;
+            try { addr = addrFromIdentityJson(ir); } catch (...) {}
+            {
+                std::lock_guard<std::mutex> lk(m_addrMu);
+                m_addrInFlight.erase(bookId);
+                // An error/empty reply keeps a previously known address rather than
+                // blanking the book's author line; it is retried after the TTL.
+                auto it = m_addrCache.find(bookId);
+                if (!addr.empty() || it == m_addrCache.end()) m_addrCache[bookId] = AddrEntry{ addr, nowMs() };
+                else it->second.at = nowMs();
+            }
+        });
+    } catch (...) {
+        std::lock_guard<std::mutex> lk(m_addrMu);
+        m_addrInFlight.erase(bookId);
+    }
+}
+std::string KithImpl::resolveAddrSync(const std::string& bookId) {
+    std::string addr;
+    try { addr = addrFromIdentityJson(modules().loam_core.identityForContainer(bookId)); } catch (...) {}
+    cacheAddr(bookId, addr);
+    return addr;
+}
+
+// Author through loam_core's identity service (loam ADR 0004 / kith ADR 0003): the
+// book's BOUND identity signs; keys never leave loam. This is why a book's owner is
+// a real loam identity, not an ad hoc device key. Falls back to the local device key
+// (kith_identity.hpp) so kith keeps working (single-writer, local-only) even without
+// loam_core able to sign. 1:1 with scala_impl.cpp's mkEvent - see that file if this
+// ever needs the keycard-aware async path scala has (kith ADR 0008, deliberately
+// deferred here).
+//
+// The bound ADDRESS comes from the address cache (one blocking identityForContainer
+// only on a cache miss; a stale entry is used and refreshed async). signDigest stays
+// the one unavoidable call per edit. If the signature's pubkey shows the binding
+// moved (stale cache), the event is re-stamped with the real signer and re-signed
+// once, so author == signer exactly as before.
 kith::Event KithImpl::mkEvent(const std::string& type, const json& payload, const std::string& bookId) {
     kith::Event e; e.v = 1; e.id = generateUuid(); e.type = type; e.payload = payload;
     if (!bookId.empty()) {
-        std::string signer;
-        try {
-            std::string ir = modules().loam_core.identityForContainer(bookId); // sync caller -> JSON string
-            if (!ir.empty()) {
-                json meta = json::parse(ir, nullptr, false);
-                if (meta.is_object()) signer = meta.value("address", std::string());
-            }
-        } catch (...) {}
+        bool fresh = false;
+        std::string signer = cachedAddr(bookId, &fresh);
+        if (signer.empty()) signer = resolveAddrSync(bookId);   // miss / unbound -> ask (sync)
+        else if (!fresh) refreshAddrAsync(bookId);
         if (!signer.empty()) {
-            e.dev = signer; e.hlc = nextHlc(); e.hlc.dev = signer;
-            std::string digestHex = kith::toHexS(
-                kith::sha256b(kith::strBytes(kith::canonicalMessage(e))).data(), 32);
-            try {
-                std::string sr = modules().loam_core.signDigest(bookId, digestHex); // sync caller -> JSON string
-                if (!sr.empty()) {
-                    json sres = json::parse(sr, nullptr, false);
-                    std::string sg = sres.is_object() ? sres.value("sig", std::string()) : std::string();
-                    std::string pk = sres.is_object() ? sres.value("pub", std::string()) : std::string();
-                    if (!sg.empty() && !pk.empty()) {
-                        e.pub = pk; e.sig = sg;
-                        return e;   // signed by the loam identity
+            e.hlc = nextHlc();
+            for (int attempt = 0; attempt < 2; ++attempt) {
+                e.dev = signer; e.hlc.dev = signer;
+                std::string digestHex = kith::toHexS(
+                    kith::sha256b(kith::strBytes(kith::canonicalMessage(e))).data(), 32);
+                std::string sg, pk;
+                try {
+                    std::string sr = modules().loam_core.signDigest(bookId, digestHex); // sync caller -> JSON string
+                    if (!sr.empty()) {
+                        json sres = json::parse(sr, nullptr, false);
+                        sg = sres.is_object() ? sres.value("sig", std::string()) : std::string();
+                        pk = sres.is_object() ? sres.value("pub", std::string()) : std::string();
                     }
+                } catch (...) {}
+                if (sg.empty() || pk.empty()) break;              // loam can't sign -> device key
+                std::string actual = addrFromPubHex(pk);
+                if (attempt == 0 && !actual.empty() && actual != signer) {
+                    cacheAddr(bookId, actual);                    // binding moved: re-stamp + re-sign
+                    signer = actual;
+                    continue;
                 }
-            } catch (...) {}
+                e.pub = pk; e.sig = sg;
+                return e;   // signed by the loam identity
+            }
         }
     }
     // Fallback: local device key. kith_engine::foldBook REQUIRES a valid signature,
@@ -351,6 +430,7 @@ std::string KithImpl::createBook(const std::string& name, const std::string& ide
         } catch (...) {}
     }
     if (!bindId.empty()) { try { modules().loam_core.bindContainer(id, bindId); } catch (...) {} }
+    invalidateAddr(id);   // binding (maybe) changed -> re-resolve
     return id;
 }
 std::string KithImpl::listBooks() {
@@ -358,15 +438,13 @@ std::string KithImpl::listBooks() {
     json arr = json::array();
     for (const auto& b : m_store->books()) {
         json f = kith::foldBook(b.id, m_store->log(b.id));
-        // Resolve the book's authoring identity ADDRESS here (once per book), so a
-        // future view gets it in this single listBooks() call instead of making one
-        // blocking loam IPC per book on refresh (same reasoning as scala's
-        // listCalendars()).
-        std::string authorAddr;
-        try {
-            json im = json::parse(modules().loam_core.identityForContainer(b.id), nullptr, false);
-            if (im.is_object()) authorAddr = im.value("address", std::string());
-        } catch (...) {}
+        // The book's authoring identity ADDRESS is baked in here so the view gets it
+        // in this single listBooks() call (no loam IPC per book from QML).
+        // From the address cache - NO cross-module call here; a missing/stale entry
+        // is refreshed async and shows up on the view's next poll.
+        bool fresh = false;
+        std::string authorAddr = cachedAddr(b.id, &fresh);
+        if (!fresh) refreshAddrAsync(b.id);
         arr.push_back(json{{"id", b.id}, {"name", b.name}, {"authorAddr", authorAddr},
                            {"contactCount", (int)f["contacts"].size()},
                            {"syncing", m_sync ? m_sync->isSyncing(b.id) : false}});
@@ -376,6 +454,7 @@ std::string KithImpl::listBooks() {
 bool KithImpl::deleteBook(const std::string& id) {
     m_sync->stopSync(id);
     m_store->removeBook(id);
+    invalidateAddr(id);
     return true;
 }
 
@@ -539,6 +618,7 @@ bool KithImpl::handleShareLink(const std::string& link, const std::string& ident
     if (bindId.empty()) { try { json d = json::parse(modules().loam_core.getDefaultIdentityId(), nullptr, false);
         if (d.is_string()) bindId = d.get<std::string>(); } catch (...) {} }
     if (!bindId.empty()) { try { modules().loam_core.bindContainer(id, bindId); } catch (...) {} }
+    invalidateAddr(id);   // binding (maybe) changed -> re-resolve
     sendSyncReq(id);   // just joined -> pull history
     return true;
 }
