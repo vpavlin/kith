@@ -112,22 +112,30 @@ Item {
 
     // The ONLY function that talks to the core on a data refresh — two calls, ever,
     // no matter how many books/contacts exist (see file header).
+    // Parse a list result, or null when the CALL failed (no core / empty bridge
+    // reply / not JSON / not an array). A legitimately EMPTY list comes back as [].
+    function jList(raw) {
+        var v = root.j(raw, null)
+        return Array.isArray(v) ? v : null
+    }
     function refresh() {
         if (!root.ready) return
         refreshIdentities()
-        var bs = j(core("listBooks", []), [])
-        // Multi-instance guard (scala's documented basecamp behaviour): don't let an
-        // empty poll from a not-yet-loaded instance blank an already-populated list.
-        if (bs.length === 0 && root.books.length > 0) { /* keep what we have */ }
-        else root.books = bs
+        // Multi-instance guard (scala's documented basecamp behaviour): a not-yet-loaded
+        // core answers nothing (no version, empty/non-JSON reply) - keep what we have
+        // then. But a READY core returning [] is the truth (last book/contact deleted)
+        // and must replace the list.
+        if (root.coreVer === "") root.checkCoreVersion()
+        var coreUp = root.coreVer !== ""
+        var bs = coreUp ? jList(core("listBooks", [])) : null
+        if (bs !== null) root.books = bs
         if (root.selectedBookId !== "") {
             var stillThere = false
             for (var i = 0; i < root.books.length; i++) if (root.books[i].id === root.selectedBookId) stillThere = true
             if (!stillThere) { root.selectedBookId = ""; root.contacts = [] }
-            else {
-                var cs = j(core("listContacts", [root.selectedBookId]), [])
-                if (cs.length === 0 && root.contacts.length > 0 && root.contactSearch === "") { /* keep */ }
-                else root.contacts = cs
+            else if (coreUp) {
+                var cs = jList(core("listContacts", [root.selectedBookId]))
+                if (cs !== null) root.contacts = cs
             }
         }
     }
