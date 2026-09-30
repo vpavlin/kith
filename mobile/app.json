@@ -20,7 +20,8 @@
       "./plugins/withLogosDelivery",
       "./plugins/withReleaseSigning",
       "expo-secure-store",
-      "expo-camera",
+      ["expo-camera", { "recordAudioAndroid": false, "cameraPermission": "Kith uses the camera only to scan a book invite QR code." }],
+      "./plugins/withOptionalCamera",
       "./src/lib/loam-transport-pkg/plugins/withDeliveryClient.js"
     ],
     "extra": {
