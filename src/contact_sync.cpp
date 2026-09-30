@@ -60,6 +60,10 @@ void ContactSync::sendEvent(const std::string &bookId, const std::string &eventJ
         for (int i = 0; i < 16; i++) { sealId += hexd[rnd[i] >> 4]; sealId += hexd[rnd[i] & 0xf]; }
     }
     std::string sealed = seal(bookId, eventJson, sealId);
+    if (sealed.empty()) {   // never put an unsealed (plaintext) event on the wire
+        fprintf(stderr, "ContactSync: refusing to send on %s - seal failed\n", bookId.c_str());
+        return;
+    }
     m_tx->send(topicForBook(bookId), sealed);
 }
 
@@ -80,8 +84,10 @@ static std::vector<unsigned char> nonceFor(const std::vector<unsigned char> &key
 // ── Crypto (byte-identical to scala's CalendarSync::seal/open) ────────────────
 std::string ContactSync::seal(const std::string &bookId, const std::string &plaintext,
                               const std::string &sealId) {
+    // Unknown book / no key -> EMPTY, never the plaintext: callers refuse to send on
+    // an empty result, so a missing key can't leak an event in the clear.
     auto it = m_activeTopics.find(bookId);
-    if (it == m_activeTopics.end()) return plaintext; // fallback
+    if (it == m_activeTopics.end() || it->second.empty()) return {};
 
     const std::string &keyHex = it->second;
     std::vector<unsigned char> key(32);
@@ -92,18 +98,19 @@ std::string ContactSync::seal(const std::string &bookId, const std::string &plai
     std::vector<unsigned char> nonce = nonceFor(key, sealId);
 
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) return {};
     std::vector<unsigned char> ciphertext(plaintext.size() + 32);
     int len = 0, ciphertextLen = 0;
-
-    EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), nullptr, key.data(), nonce.data());
-    EVP_EncryptUpdate(ctx, ciphertext.data(), &len, (const unsigned char *)plaintext.data(), (int)plaintext.size());
-    ciphertextLen = len;
-    EVP_EncryptFinal_ex(ctx, ciphertext.data() + len, &len);
-    ciphertextLen += len;
-
     unsigned char tag[16];
-    EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, 16, tag);
+
+    bool ok = EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), nullptr, key.data(), nonce.data()) == 1
+        && EVP_EncryptUpdate(ctx, ciphertext.data(), &len, (const unsigned char *)plaintext.data(), (int)plaintext.size()) == 1;
+    ciphertextLen = len;
+    ok = ok && EVP_EncryptFinal_ex(ctx, ciphertext.data() + len, &len) == 1;
+    ciphertextLen += len;
+    ok = ok && EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, 16, tag) == 1;
     EVP_CIPHER_CTX_free(ctx);
+    if (!ok) return {};
 
     std::string result;
     result.resize(12 + 16 + ciphertextLen);
