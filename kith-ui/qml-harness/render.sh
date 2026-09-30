@@ -4,6 +4,8 @@
 # correctly, not that the QML loads/binds). Pin the same Qt + logos-design-system store
 # paths scala-ui's harness resolved (still present in the local nix store), so the render
 # matches production.
+#   KITH_MOCK_ASYNC=1 SHOTS=shots-async ./render.sh   # newer bridge (callModuleAsync)
+#   ./render.sh                                       # 0.2.0 bridge (sync callModule only)
 set -euo pipefail
 QB=/nix/store/dkfr32yi7p8cdxsnll05q1kax19fl7ay-qtbase-6.9.2
 QDECL=/nix/store/agvpq5n8vcqwnkmn8bp8rlczy3fdxm6n-qtdeclarative-6.9.2
@@ -14,10 +16,10 @@ g++ -std=c++17 -fPIC harness.cpp -o harness \
   -I"$QB/include" -I"$QB/include/QtCore" -I"$QB/include/QtGui" \
   -I"$QDECL/include" -I"$QDECL/include/QtQml" -I"$QDECL/include/QtQuick" \
   -L"$QB/lib" -L"$QDECL/lib" -lQt6Core -lQt6Gui -lQt6Qml -lQt6Quick
-mkdir -p shots; rm -f shots/*.png
+SHOTS="${SHOTS:-shots}"; mkdir -p "$SHOTS"; rm -f "$SHOTS"/*.png
 export QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QUICK_CONTROLS_STYLE=Basic
 IMPORTS="$QDECL/lib/qt-6/qml:$DS"
 export QML2_IMPORT_PATH="$IMPORTS" QML_IMPORT_PATH="$IMPORTS"
 export LD_LIBRARY_PATH="$QB/lib:$QDECL/lib"
-./harness "$HERE/../qml/Main.qml" "$HERE/shots"
-echo "-> shots/ : $(ls shots/*.png 2>/dev/null | wc -l) screenshots"
+./harness "$HERE/../qml/Main.qml" "$HERE/$SHOTS"
+echo "-> $SHOTS/ : $(ls "$SHOTS"/*.png 2>/dev/null | wc -l) screenshots"
