@@ -1,19 +1,22 @@
 // Kith — pure-QML Basecamp view over the `kith` core module (kith ADR 0006/0007).
 //
-// Structural idiom copied from scala-ui/qml/CalendarView.qml: a synchronous
-// logos.callModule bridge (core()/loamCore()), a j() double/triple-JSON-unwrap
-// helper, a poll Timer (events are not reliably delivered to QML), and
+// Structural idiom from scala-ui/qml/CalendarView.qml: a j() double/triple-JSON-
+// unwrap helper, a poll Timer (events are not reliably delivered to QML), and
 // Logos.Theme/Logos.Controls styling (LogosText/LogosButton — the proven-safe
 // baseline on the 0.2.0-era bundled design system — plus LogosTextField, which
 // scala-ui already uses successfully in its identities popup).
 //
-// HARD RULE (explicit from the build brief): no per-item blocking IPC in QML.
-// refresh() makes at most TWO calls regardless of how many books/contacts exist:
-//   1) listBooks()            — one call, core already bakes in authorAddr +
-//                                contactCount per book (kith_impl.cpp listBooks).
-//   2) listContacts(bookId)   — one call for the selected book's whole contact
-//                                list, already folded. Search/filter is client-side
-//                                JS over that array — zero extra IPC per keystroke.
+// HOUSE RULE: NO BLOCKING CALLS IN QML, ever. Every module call goes through
+// call()/core()/loamCore(), which are ASYNC (callback-based): logos.callModuleAsync
+// on bridges that have it, else (Basecamp 0.2.0) the sync callModule deferred via
+// Qt.callLater — the ONLY remaining callModule call site, inside call().
+// refresh() issues at most five calls in parallel (in-flight guarded, never
+// overlapping) regardless of how many books/contacts exist:
+//   listIdentities + getDefaultIdentityId (loam_core), coreVersion (until known),
+//   listBooks()            — core bakes in authorAddr + contactCount per book
+//                            (kith_impl.cpp listBooks, from a cached binding).
+//   listContacts(bookId)   — the selected book's whole folded contact list.
+// Search/filter is client-side JS over that array — zero extra IPC per keystroke.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -38,18 +41,67 @@ Item {
 
     // ── core bridge ──────────────────────────────────────────────────────────
     property bool ready: false
-    function core(method, args) {
-        if (typeof logos === "undefined" || !logos.callModule) return ""
-        var r = logos.callModule("kith", method, args || [])
-        return (r === undefined || r === null) ? "" : r
+    //   - Newer Basecamp bridges expose callModuleAsync(module, method, args, cb, timeoutMs):
+    //     cb receives ONE string (what callModule would return, or {"error":...} incl. timeout).
+    //   - Older bridges (Basecamp 0.2.0) lack it: fall back to the sync callModule, but run it
+    //     DEFERRED via Qt.callLater (never inside the caller's signal handler) and deliver the
+    //     result through the same callback, so every caller is uniformly async.
+    // cb is always invoked exactly once, with a string, and always on a LATER event-loop tick
+    // (never synchronously inside the caller) — so a result can reassign a Repeater/ListView
+    // model without destroying the delegate whose handler started the call.
+    readonly property int callTimeoutMs: 30000
+    function hasBridge() { return typeof logos !== "undefined" && logos !== null && (typeof logos.callModuleAsync === "function" || typeof logos.callModule === "function") }
+    function hasAsyncBridge() { return typeof logos !== "undefined" && logos !== null && typeof logos.callModuleAsync === "function" }
+    function _deliver(cb, raw) {
+        if (!cb) return
+        try { cb(raw === undefined || raw === null ? "" : String(raw)) }
+        catch (e) { console.warn("kith view: callback error: " + e) }
     }
+    function call(module, method, args, cb) {
+        var a = args || []
+        if (typeof logos === "undefined" || logos === null) {
+            Qt.callLater(function () { root._deliver(cb, '{"error":"no logos bridge"}') })
+            return
+        }
+        if (root.hasAsyncBridge()) {
+            try {
+                logos.callModuleAsync(module, method, a, function (res) {
+                    Qt.callLater(function () { root._deliver(cb, res) })
+                }, root.callTimeoutMs)
+            } catch (e) {
+                var msg = JSON.stringify({ error: "callModuleAsync threw: " + e })
+                Qt.callLater(function () { root._deliver(cb, msg) })
+            }
+            return
+        }
+        // Fallback (old bridge): the only remaining synchronous callModule, deferred out of the
+        // caller's handler.
+        Qt.callLater(function () {
+            var raw
+            try { raw = (typeof logos.callModule === "function") ? logos.callModule(module, method, a) : '{"error":"no callModule"}' }
+            catch (e2) { raw = JSON.stringify({ error: "callModule threw: " + e2 }) }
+            root._deliver(cb, raw)
+        })
+    }
+    function core(method, args, cb) { root.call("kith", method, args, cb) }
     // Identity SERVICE lives in loam_core (loam ADR 0004 / kith ADR 0003 "Loam owns
-    // WHO") — the view talks to it directly for the identity picker, exactly like
-    // scala's loamCore() helper.
-    function loamCore(method, args) {
-        if (typeof logos === "undefined" || !logos.callModule) return ""
-        try { var r = logos.callModule("loam_core", method, args || []); return (r === undefined || r === null) ? "" : r } catch (e) { return "" }
+    // WHO") — the view talks to it directly for the identity picker, like scala.
+    function loamCore(method, args, cb) { root.call("loam_core", method, args, cb) }
+    // The bridge's own failure shape: {"error": "..."} (timeout, module missing, threw).
+    function errorOf(raw) {
+        var v = root.j(raw, null)
+        return (v && typeof v === "object" && !Array.isArray(v) && typeof v.error === "string") ? v.error : ""
     }
+    // Transient action error (async mutation failed) — shown as a small toast.
+    property string actionError: ""
+    function reportError(what, raw) {
+        var e = root.errorOf(raw)
+        if (e === "" && String(raw).trim() !== "") return false
+        root.actionError = what + " failed" + (e !== "" ? ": " + e : " (no reply from the kith core)")
+        errorToastTimer.restart()
+        return true
+    }
+    Timer { id: errorToastTimer; interval: 6000; onTriggered: root.actionError = "" }
     // Returns can come back double/triple-JSON-encoded through the bridge (scala's
     // documented behaviour) — unwrap up to 3 times.
     function j(raw, fallback) {
@@ -72,18 +124,16 @@ Item {
         for (var i = 0; i < 3; i++) { var x = parseInt(pa[i] || "0"), y = parseInt(pb[i] || "0"); if (x !== y) return x < y }
         return false
     }
-    function checkCoreVersion() {
-        root.coreVer = String(root.core("coreVersion", [])).replace(/^"|"$/g, "")
-        root.coreOutOfDate = (root.coreVer === "" || root.verLt(root.coreVer, root.minCore))
+    function applyCoreVersion(raw) {
+        var v = (root.errorOf(raw) !== "") ? "" : String(raw).trim().replace(/^"|"$/g, "")
+        root.coreVer = v
+        root.coreOutOfDate = (v === "" || root.verLt(v, root.minCore))
     }
 
     // ── identities (loam_core service; UI is ours — same shape as scala) ───────
     property var identities: []            // [{id,kind,label,address,pubHex}]
     property string defaultIdentityId: "device"
-    function refreshIdentities() {
-        identities = root.j(loamCore("listIdentities", []), [])
-        defaultIdentityId = root.j(loamCore("getDefaultIdentityId", []), "device")
-    }
+    // (fetched as part of refresh(); results applied from the async callback)
     function identityLabel(id) {
         for (var i = 0; i < identities.length; i++) if (identities[i].id === id) return identities[i].label
         return id
@@ -101,8 +151,8 @@ Item {
     property string contactSearch: ""
 
     Component.onCompleted: Qt.callLater(function () {
-        root.ready = (typeof logos !== "undefined" && !!logos.callModule)
-        if (root.ready) { root.checkCoreVersion(); root.refresh() }
+        root.ready = root.hasBridge()
+        if (root.ready) root.refresh()
     })
 
     Timer {
@@ -110,40 +160,104 @@ Item {
         onTriggered: root.refresh()
     }
 
-    // The ONLY function that talks to the core on a data refresh — two calls, ever,
-    // no matter how many books/contacts exist (see file header).
     // Parse a list result, or null when the CALL failed (no core / empty bridge
-    // reply / not JSON / not an array). A legitimately EMPTY list comes back as [].
+    // reply / {"error":..} / not JSON / not an array). A legitimately EMPTY list is [].
     function jList(raw) {
         var v = root.j(raw, null)
         return Array.isArray(v) ? v : null
     }
+    // Async, batched, never overlapping. A tick that finds a refresh in flight only
+    // marks it dirty; the running one re-runs once when it lands. A watchdog (well
+    // past the bridge timeout) drops a refresh whose callbacks never came back; its
+    // late results are ignored via the generation counter.
+    property bool refreshing: false
+    property bool refreshDirty: false
+    property int refreshGen: 0
+    property double refreshStartedAt: 0
     function refresh() {
         if (!root.ready) return
-        refreshIdentities()
+        if (root.refreshing) {
+            if (Date.now() - root.refreshStartedAt < root.callTimeoutMs + 5000) { root.refreshDirty = true; return }
+            console.warn("kith view: refresh watchdog - dropping a stuck refresh")
+        }
+        var gen = ++root.refreshGen
+        root.refreshing = true; root.refreshDirty = false; root.refreshStartedAt = Date.now()
+        var askVersion = (root.coreVer === "")
+        var bookId = root.selectedBookId
+        var res = {}
+        var pending = 0
+        function done(key) {
+            return function (raw) {
+                if (gen !== root.refreshGen) return      // superseded (watchdog)
+                res[key] = raw
+                if (--pending === 0) root.applyRefresh(res, askVersion, bookId)
+            }
+        }
+        var calls = [["loam_core", "listIdentities", [], "ids"],
+                     ["loam_core", "getDefaultIdentityId", [], "def"],
+                     ["kith", "listBooks", [], "books"]]
+        if (askVersion) calls.push(["kith", "coreVersion", [], "ver"])
+        if (bookId !== "") calls.push(["kith", "listContacts", [bookId], "contacts"])
+        pending = calls.length
+        for (var i = 0; i < calls.length; i++) root.call(calls[i][0], calls[i][1], calls[i][2], done(calls[i][3]))
+    }
+    function applyRefresh(res, askedVersion, bookId) {
+        root.refreshing = false
+        var ids = root.jList(res.ids)
+        if (ids !== null) root.identities = ids
+        var def = root.j(res.def, null)
+        if (typeof def === "string" && def !== "") root.defaultIdentityId = def
         // Multi-instance guard (scala's documented basecamp behaviour): a not-yet-loaded
-        // core answers nothing (no version, empty/non-JSON reply) - keep what we have
-        // then. But a READY core returning [] is the truth (last book/contact deleted)
-        // and must replace the list.
-        if (root.coreVer === "") root.checkCoreVersion()
+        // core answers nothing (no version, empty/non-JSON/{"error"} reply) - keep what we
+        // have then. But a READY core returning [] is the truth (last book/contact
+        // deleted) and must replace the list.
+        if (askedVersion) root.applyCoreVersion(res.ver)
         var coreUp = root.coreVer !== ""
-        var bs = coreUp ? jList(core("listBooks", [])) : null
+        var bs = coreUp ? root.jList(res.books) : null
         if (bs !== null) root.books = bs
-        if (root.selectedBookId !== "") {
+        // Only judge the selection this refresh was issued for: one started before the
+        // user selected (e.g. a just-created book) can't know about it - the dirty
+        // re-run will.
+        if (root.selectedBookId !== "" && bookId === root.selectedBookId) {
             var stillThere = false
             for (var i = 0; i < root.books.length; i++) if (root.books[i].id === root.selectedBookId) stillThere = true
             if (!stillThere) { root.selectedBookId = ""; root.contacts = [] }
-            else if (coreUp) {
-                var cs = jList(core("listContacts", [root.selectedBookId]))
+            else if (coreUp && res.contacts !== undefined) {
+                var cs = root.jList(res.contacts)
                 if (cs !== null) root.contacts = cs
             }
         }
+        if (root.refreshDirty) { root.refreshDirty = false; Qt.callLater(root.refresh) }
     }
     function selectBook(id) {
         root.selectedBookId = id
         root.contactSearch = ""
         if (typeof searchField !== "undefined") searchField.text = ""
-        root.contacts = j(core("listContacts", [id]), [])
+        root.contacts = []
+        root.core("listContacts", [id], function (raw) {
+            if (root.selectedBookId !== id) return      // user moved on meanwhile
+            var cs = root.jList(raw)
+            if (cs !== null) root.contacts = cs
+        })
+    }
+    function createBook(name, identityId) {
+        root.core("createBook", [name, identityId], function (raw) {
+            if (root.reportError("Creating the book", raw)) { root.refresh(); return }
+            var id = String(root.j(raw, ""))
+            if (id !== "") root.selectBook(id)
+            root.refresh()
+        })
+    }
+    function deleteBook(id) {
+        root.core("deleteBook", [id], function (raw) { root.reportError("Deleting the book", raw); root.refresh() })
+    }
+    function exportVcard(bookId, contactId) {
+        root.core("exportVcard", [bookId, contactId || ""], function (raw) {
+            var err = root.errorOf(raw)   // an empty export is legit - only a bridge error fails
+            if (err !== "") { root.reportError("Exporting", raw); return }
+            root.exportedVcard = String(root.j(raw, ""))
+            exportPopup.open()
+        })
     }
     function bookById(id) {
         for (var i = 0; i < books.length; i++) if (books[i].id === id) return books[i]
@@ -260,9 +374,12 @@ Item {
                                 text: "✕"; color: Theme.palette.textTertiary; font.pixelSize: 14; Layout.alignment: Qt.AlignVCenter
                                 MouseArea {
                                     anchors.fill: parent; anchors.margins: -4
-                                    onClicked: root.askConfirm(
-                                        "Delete \"" + (modelData.name || "this book") + "\" and its " + modelData.contactCount + " contact(s)? This can't be undone.",
-                                        function () { core("deleteBook", [modelData.id]); root.refresh() })
+                                    onClicked: {
+                                        var bid = modelData.id
+                                        root.askConfirm(
+                                            "Delete \"" + (modelData.name || "this book") + "\" and its " + modelData.contactCount + " contact(s)? This can't be undone.",
+                                            function () { root.deleteBook(bid) })
+                                    }
                                 }
                             }
                         }
@@ -322,7 +439,7 @@ Item {
                     LogosButton { text: "Import vCard"; onClicked: importPopup.open() }
                     LogosButton {
                         text: "Export book"
-                        onClicked: { root.exportedVcard = String(root.j(root.core("exportVcard", [root.selectedBookId, ""]), "")); exportPopup.open() }
+                        onClicked: root.exportVcard(root.selectedBookId, "")
                     }
                     LogosButton { text: "+ Add contact"; onClicked: root.openNewContact() }
                 }
@@ -373,6 +490,17 @@ Item {
         }
     }
 
+    // ── async action error toast (a mutation's reply was an error / nothing) ──
+    Rectangle {
+        visible: root.actionError !== ""
+        z: 9998
+        anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter; bottomMargin: 16 }
+        width: Math.min(root.width - 32, errText.implicitWidth + 32); height: errText.implicitHeight + 16
+        radius: Theme.spacing.radiusSmall; color: root.kRubric
+        LogosText { id: errText; anchors.centerIn: parent; width: parent.width - 32; wrapMode: Text.WordWrap; text: root.actionError; color: root.kInk; font.pixelSize: 12 }
+        MouseArea { anchors.fill: parent; onClicked: root.actionError = "" }
+    }
+
     // ── new-book popup: name + "Author as" identity chips (kith ADR 0003) ──────
     property string newBookIdentity: ""
     Popup {
@@ -414,9 +542,8 @@ Item {
                 LogosButton {
                     text: "Create"; enabled: newBookName.text.trim().length > 0
                     onClicked: {
-                        var id = String(root.j(root.core("createBook", [newBookName.text.trim(), root.newBookIdentity || root.defaultIdentityId]), ""))
-                        newBookPopup.close(); root.refresh()
-                        if (id !== "") root.selectBook(id)
+                        root.createBook(newBookName.text.trim(), root.newBookIdentity || root.defaultIdentityId)
+                        newBookPopup.close()
                     }
                 }
             }
@@ -486,16 +613,20 @@ Item {
     }
     function saveContact() {
         var p = root.buildContactPayload()
-        if (root.editingContact) core("editContact", [root.selectedBookId, JSON.stringify(p)])
-        else core("addContact", [root.selectedBookId, JSON.stringify(p)])
-        contactPopup.close(); root.refresh()
+        var editing = !!root.editingContact
+        root.core(editing ? "editContact" : "addContact", [root.selectedBookId, JSON.stringify(p)], function (raw) {
+            root.reportError(editing ? "Saving the contact" : "Adding the contact", raw)
+            root.refresh()
+        })
+        contactPopup.close()
     }
     function deleteContact() {
         if (root.editingContact) {
             var id = root.editingContact.id
+            var bookId = root.selectedBookId
             contactPopup.close()
             root.askConfirm("Delete " + root.contactName(root.editingContact) + "?", function () {
-                core("deleteContact", [root.selectedBookId, id]); root.refresh()
+                root.core("deleteContact", [bookId, id], function (raw) { root.reportError("Deleting the contact", raw); root.refresh() })
             })
         }
     }
@@ -667,10 +798,7 @@ Item {
                 LogosButton { visible: root.editingContact !== null; text: "Delete"; onClicked: root.deleteContact() }
                 LogosButton {
                     visible: root.editingContact !== null; text: "Export vCard"
-                    onClicked: {
-                        root.exportedVcard = String(root.j(root.core("exportVcard", [root.selectedBookId, root.editingContact.id]), ""))
-                        exportPopup.open()
-                    }
+                    onClicked: root.exportVcard(root.selectedBookId, root.editingContact.id)
                 }
                 Item { Layout.fillWidth: true }
                 LogosButton { text: "Cancel"; onClicked: contactPopup.close() }
@@ -681,6 +809,7 @@ Item {
 
     // ── import vCard popup ──────────────────────────────────────────────────
     property string importResult: ""
+    property bool importing: false
     Popup {
         id: importPopup
         anchors.centerIn: Overlay.overlay
@@ -704,11 +833,21 @@ Item {
                 Item { Layout.fillWidth: true }
                 LogosButton { text: "Close"; onClicked: importPopup.close() }
                 LogosButton {
-                    text: "Import"; enabled: vcardInput.text.trim().length > 0
+                    text: root.importing ? "Importing…" : "Import"
+                    enabled: !root.importing && vcardInput.text.trim().length > 0
                     onClicked: {
-                        var res = root.j(root.core("importVcard", [root.selectedBookId, vcardInput.text]), { imported: 0 })
-                        root.importResult = "Imported " + (res.imported || 0) + " contact(s)."
-                        root.refresh()
+                        root.importing = true
+                        root.importResult = ""
+                        root.core("importVcard", [root.selectedBookId, vcardInput.text], function (raw) {
+                            root.importing = false
+                            var err = root.errorOf(raw)
+                            if (err !== "") root.importResult = "Import failed: " + err
+                            else {
+                                var res = root.j(raw, { imported: 0 })
+                                root.importResult = "Imported " + ((res && res.imported) || 0) + " contact(s)."
+                            }
+                            root.refresh()
+                        })
                     }
                 }
             }
@@ -720,15 +859,29 @@ Item {
     property string shareLinkText: ""
     property var qrData: null    // { n, cells } from core qrMatrix
     TextEdit { id: shareClipHelper; visible: false; text: root.shareLinkText }
+    // Open immediately; the link then the QR fill in as the async replies land. A
+    // newer openShare supersedes an older one's late replies (shareSeq).
+    property int shareSeq: 0
     function openShare(bookId) {
-        root.shareLinkText = String(root.j(root.core("shareLink", [bookId]), ""))
-        // Build a scannable QR matrix from the core (drawn on a Canvas; data: URIs
-        // are blocked in the sandbox, so we render cells ourselves).
+        var seq = ++root.shareSeq
+        root.shareLinkText = ""
         root.qrData = null
-        var m = root.j(root.core("qrMatrix", [root.shareLinkText]), null)
-        if (m && m.ok && m.n && m.cells && m.cells.length >= m.n * m.n) root.qrData = { n: m.n, cells: m.cells }
         qrCanvas.requestPaint()
         sharePopup.open()
+        root.core("shareLink", [bookId], function (raw) {
+            if (seq !== root.shareSeq) return
+            if (root.reportError("Building the share link", raw)) return
+            root.shareLinkText = String(root.j(raw, ""))
+            if (root.shareLinkText === "") return
+            // Build a scannable QR matrix from the core (drawn on a Canvas; data: URIs
+            // are blocked in the sandbox, so we render cells ourselves).
+            root.core("qrMatrix", [root.shareLinkText], function (qraw) {
+                if (seq !== root.shareSeq) return
+                var m = root.j(qraw, null)
+                if (m && m.ok && m.n && m.cells && m.cells.length >= m.n * m.n) root.qrData = { n: m.n, cells: m.cells }
+                qrCanvas.requestPaint()
+            })
+        })
     }
     Popup {
         id: sharePopup
@@ -776,6 +929,7 @@ Item {
 
     // ── join popup (kith Phase 4: sync) — paste a kith://join… link ────────────
     property string joinResult: ""
+    property bool joining: false
     Popup {
         id: joinBookPopup
         anchors.centerIn: Overlay.overlay
@@ -793,15 +947,24 @@ Item {
                 Item { Layout.fillWidth: true }
                 LogosButton { text: "Close"; onClicked: joinBookPopup.close() }
                 LogosButton {
-                    text: "Join"; enabled: joinLinkField.text.trim().length > 0
+                    text: root.joining ? "Joining…" : "Join"
+                    enabled: !root.joining && joinLinkField.text.trim().length > 0
                     onClicked: {
-                        var ok = root.core("handleShareLink", [joinLinkField.text.trim(), root.defaultIdentityId])
-                        if (ok === true || ok === "true") {
-                            root.joinResult = "Joined — syncing now."
-                            root.refresh()
-                        } else {
-                            root.joinResult = "Couldn't parse that link."
-                        }
+                        root.joining = true
+                        root.joinResult = ""
+                        root.core("handleShareLink", [joinLinkField.text.trim(), root.defaultIdentityId], function (raw) {
+                            root.joining = false
+                            var err = root.errorOf(raw)
+                            var ok = root.j(raw, false)
+                            if (ok === true || ok === "true") {
+                                root.joinResult = "Joined — syncing now."
+                                root.refresh()
+                            } else if (err !== "") {
+                                root.joinResult = "Couldn't join: " + err
+                            } else {
+                                root.joinResult = "Couldn't parse that link."
+                            }
+                        })
                     }
                 }
             }
