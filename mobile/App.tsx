@@ -5,6 +5,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View, Text, TextInput, Pressable, ScrollView, StyleSheet, Alert, Modal, KeyboardAvoidingView, Platform, FlatList,
+  AppState,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -33,6 +34,10 @@ const C = {
 };
 
 function msg(e: unknown): string { return e instanceof Error ? e.message : String(e); }
+// Alert that resolves once dismissed (so a caller can wait for the user to read it).
+function alertAndWait(title: string, text: string): Promise<void> {
+  return new Promise((res) => Alert.alert(title, text, [{ text: "OK", onPress: () => res() }], { onDismiss: () => res() }));
+}
 
 export default function App() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -73,17 +78,39 @@ export default function App() {
   useEffect(() => { const off = onChange(() => { void refresh(); }); return off; }, [refresh]);
   useEffect(() => { void refresh(); }, [activeBookId]);
 
+  // Bring sync up; if that fails, don't sit in "error" forever — retry with backoff
+  // (15 s → 30 s → 60 s cap) and immediately whenever the app returns to the
+  // foreground. Local edits keep working throughout (local-first).
   useEffect(() => {
+    let cancelled = false, up = false, inFlight = false;
+    let delay = 15_000;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const attempt = async () => {
+      if (cancelled || up || inFlight) return;
+      inFlight = true;
+      try {
+        await startSyncing(undefined, (st) => setStatus(st));
+        up = true;
+      } catch (e) {
+        if (cancelled) return;
+        setStatus(`error: ${msg(e)} (retry in ${Math.round(delay / 1000)}s)`);
+        clearTimeout(timer);
+        timer = setTimeout(() => { void attempt(); }, delay);
+        delay = Math.min(delay * 2, 60_000);
+      } finally {
+        inFlight = false;
+      }
+    };
+    const sub = AppState.addEventListener("change", (st) => {
+      if (st === "active" && !up) { clearTimeout(timer); void attempt(); }
+    });
     void (async () => {
       setDeviceId(await getDeviceId());
       setShared(await getSharedNode());
-      try {
-        await startSyncing(undefined, (s) => setStatus(s));
-      } catch (e) {
-        setStatus("error: " + msg(e));
-      }
+      await attempt();
       await refresh();
     })();
+    return () => { cancelled = true; clearTimeout(timer); sub.remove(); };
   }, []);
 
   useEffect(() => {
@@ -101,16 +128,20 @@ export default function App() {
     setActiveBookId(b.id);
   };
 
-  const onJoin = async (link: string) => {
+  // Resolves true on success; false only after the user dismissed the error, so the
+  // QR scanner can re-arm for another attempt.
+  const onJoin = async (link: string): Promise<boolean> => {
     try {
       const b = await joinFromInvite(link.trim());
-      if (!b) { Alert.alert("Invalid link", "That doesn't look like a kith:// invite."); return; }
+      if (!b) { await alertAndWait("Invalid link", "That doesn't look like a kith:// invite."); return false; }
       setJoinLink("");
       setShowJoin(false);
       setScanning(false);
       setActiveBookId(b.id);
+      return true;
     } catch (e) {
-      Alert.alert("Join failed", msg(e));
+      await alertAndWait("Join failed", msg(e));
+      return false;
     }
   };
 
@@ -127,10 +158,19 @@ export default function App() {
       Alert.alert("Save failed", msg(e));
     }
   };
-  const onDeleteContact = async () => {
+  const onDeleteContact = () => {
     if (!activeBookId || !contactModal.editing) return;
-    await deleteContact(activeBookId, contactModal.editing.id);
-    setContactModal({ open: false });
+    const bookId = activeBookId, c = contactModal.editing;
+    Alert.alert("Delete contact", `Delete "${c.name?.display || "this contact"}"? This removes it on every device sharing the book.`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete", style: "destructive", onPress: () => {
+          void deleteContact(bookId, c.id)
+            .then(() => setContactModal({ open: false }))
+            .catch((e) => Alert.alert("Delete failed", msg(e)));
+        },
+      },
+    ]);
   };
 
   const onDeleteBook = (b: Book) => {

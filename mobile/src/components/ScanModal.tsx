@@ -7,7 +7,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 const C = { bg: "#1B1509", text: "#EBDEC2", sub: "#B7A582", primary: "#CB9E60" };
 
 export function ScanModal({ visible, onScanned, onClose }: {
-  visible: boolean; onScanned: (data: string) => void; onClose: () => void;
+  // onScanned may return (a promise of) false to reject the scan — the scanner then
+  // re-arms so the user can try another code.
+  visible: boolean; onScanned: (data: string) => void | boolean | Promise<void | boolean>; onClose: () => void;
 }) {
   const [permission, requestPermission] = useCameraPermissions();
   const insets = useSafeAreaInsets();
@@ -23,7 +25,9 @@ export function ScanModal({ visible, onScanned, onClose }: {
   const handle = (r: BarcodeScanningResult) => {
     if (done.v) return;
     done.v = true;
-    onScanned(r.data);
+    Promise.resolve(onScanned(r.data))
+      .then((ok) => { if (ok === false) done.v = false; })
+      .catch(() => { done.v = false; });
   };
 
   return (
