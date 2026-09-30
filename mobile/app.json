@@ -3,14 +3,14 @@
     "name": "Kith",
     "slug": "kith",
     "scheme": "kith",
-    "version": "0.1.4",
+    "version": "0.1.5",
     "platforms": [
       "android"
     ],
     "icon": "./assets/icon.png",
     "android": {
       "package": "xyz.vpavlin.kith",
-      "versionCode": 5,
+      "versionCode": 6,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#6B4E2E"

@@ -3,7 +3,7 @@
 // per-book / registry locks keep concurrent read-modify-writes from losing writes.
 import assert from "node:assert/strict";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { store, LOG_CHUNK_CHARS } from "../src/lib/store.ts";
+import { store, LOG_CHUNK_CHARS, __resetCache } from "../src/lib/store.ts";
 import type { Event } from "../src/lib/engine.ts";
 
 const S = AsyncStorage as any;
@@ -14,7 +14,7 @@ function ev(i: number, pad = 0): Event {
     payload: { id: `c${i}`, notes: "x".repeat(pad) } };
 }
 async function check(name: string, fn: () => Promise<void>) {
-  S.__map.clear(); S.__rowLimit = Infinity;
+  S.__map.clear(); S.__rowLimit = Infinity; __resetCache();
   await fn();
   n++; console.log("  ok:", name);
 }
@@ -54,7 +54,7 @@ await check("corrupt registry: upsertReg throws and leaves it untouched", async 
 
 await check("missing chunk is a read failure, not an empty log", async () => {
   for (let i = 0; i < 3; i++) await store.appendEvent("b4", ev(i));
-  S.__map.delete("kith.log.b4.0");
+  S.__map.delete("kith.log.b4.0"); __resetCache(); // cold read (e.g. after an app restart)
   await assert.rejects(store.getLog("b4"));
 });
 
@@ -86,3 +86,10 @@ await check("requireMember: an event for a removed book doesn't recreate its log
 });
 
 console.log(`STORE OK — ${n} checks passed.`);
+
+await check("appends are visible through the cache and survive a cold read", async () => {
+  for (let i = 0; i < 5; i++) await store.appendEvent("b6", ev(i));
+  const warm = (await store.getLog("b6")).map((e) => e.id);
+  __resetCache();
+  assert.deepEqual((await store.getLog("b6")).map((e) => e.id), warm);
+});

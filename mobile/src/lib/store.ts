@@ -126,6 +126,7 @@ function removeBook(id: string): Promise<void> {
       const keys = (await AsyncStorage.getAllKeys().catch(() => [] as readonly string[]))
         .filter((k) => k.startsWith(prefix));
       await AsyncStorage.multiRemove([logKey(id), ...keys]).catch(() => {});
+      logCache.delete(id); foldCache.delete(id);
     });
   });
 }
@@ -185,14 +186,35 @@ async function chunkCount(bookId: string): Promise<number> {
   return idx && !Array.isArray(idx) && Number.isInteger(idx.chunks) ? idx.chunks : 0;
 }
 
+// In-memory copy of each book's parsed log. Storage stays the durable truth (every
+// append still writes through), but reads no longer re-parse megabytes of JSON per
+// inbound event — that per-event re-read + UI re-fold is what froze the JS thread
+// during catch-up bursts. Only appendEvent/removeBook write logs, and both keep this
+// in step. Callers must treat the returned array as READ-ONLY (it is shared).
+const logCache = new Map<string, Event[]>();
+// Folds cached per log array identity: a new array (append) = a new fold.
+const foldCache = new Map<string, { log: Event[]; fold: ReturnType<typeof foldBook> }>();
+export function __resetCache() { logCache.clear(); foldCache.clear(); }
+
 async function getLog(bookId: string): Promise<Event[]> {
+  const hit = logCache.get(bookId);
+  if (hit) return hit;
   const raw = await readLogRaw(bookId);
   const out: Event[] = [];
   for (const j of raw) {
     const e = eventFromJson(j);
     if (e.id) out.push(e);
   }
+  logCache.set(bookId, out);
   return out;
+}
+async function foldOf(bookId: string) {
+  const log = await getLog(bookId);
+  const c = foldCache.get(bookId);
+  if (c && c.log === log) return c.fold;
+  const fold = foldBook(bookId, log);
+  foldCache.set(bookId, { log, fold });
+  return fold;
 }
 // Merge one event into the log (dedup by id), persist. Returns true if NEW.
 // Serialized per book; a failed read throws BEFORE any write (never clobbers data).
@@ -207,6 +229,7 @@ function appendEvent(bookId: string, ev: Event, opts?: { requireMember?: boolean
     if (log.some((x) => x.id === ev.id)) return false; // dedup — idempotent redelivery
     const merged = mergeEvents([...log, ev]); // keep HLC-sorted + unique
     await writeLog(bookId, merged, await chunkCount(bookId));
+    logCache.set(bookId, merged); // only after the write landed
     return true;
   });
 }
@@ -224,14 +247,14 @@ export const store = {
     const regs = await getRegistry();
     const out: Book[] = [];
     for (const r of regs) {
-      const f = foldBook(r.id, await getLog(r.id));
+      const f = await foldOf(r.id);
       out.push({ id: r.id, name: r.name, encryptionKey: r.key, contactCount: f.contacts.length });
     }
     return out;
   },
 
   async contactsFor(bookId: string): Promise<Contact[]> {
-    const f = foldBook(bookId, await getLog(bookId));
+    const f = await foldOf(bookId);
     return f.contacts as Contact[];
   },
 
@@ -239,7 +262,7 @@ export const store = {
     const regs = await getRegistry();
     const out: { bookId: string; contact: Contact }[] = [];
     for (const r of regs) {
-      const f = foldBook(r.id, await getLog(r.id));
+      const f = await foldOf(r.id);
       for (const c of f.contacts) out.push({ bookId: r.id, contact: c as Contact });
     }
     return out;

@@ -291,8 +291,11 @@ export function onChange(cb: Listener): () => void {
   listeners.add(cb);
   return () => listeners.delete(cb);
 }
+// Coalesced: a catch-up burst of N events → ONE UI refresh, not N.
+let notifyTimer: ReturnType<typeof setTimeout> | null = null;
 function notifyChange() {
-  listeners.forEach((l) => l());
+  if (notifyTimer) return;
+  notifyTimer = setTimeout(() => { notifyTimer = null; listeners.forEach((l) => l()); }, 200);
 }
 export function foldBookNow(bookId: string, log: Event[]) {
   return foldBook(bookId, log);
