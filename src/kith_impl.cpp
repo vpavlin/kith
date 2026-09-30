@@ -9,6 +9,7 @@
 
 #include <nlohmann/json.hpp>
 #include "qrcodegen.hpp"
+#include <openssl/rand.h>
 #include "logos_transport.hpp"
 #include "logos_sync/catchup.hpp"   // delta catch-up (buildInitial / respond)
 #include <QTimer>                    // catch-up retry timers (mesh forms ~10s after start)
@@ -28,26 +29,31 @@
 using kith::json;
 
 // -- small helpers ----------------------------------------------------------------
-// RFC-4122-ish v4 UUID. MUST use a properly-seeded high-quality RNG: std::rand() is
-// deterministic when unseeded (replays the same sequence from seed 1 every process
-// launch), so unseeded it hands the FIRST book/contact after each restart an
-// IDENTICAL id -> colliding books (shared log/key) and, worse, re-used contact ids
-// that appendEvent's dedup-by-id silently DROPS (the exact scala_impl.cpp trap).
-// Seed once from random_device; nonce hex nibbles from a persistent 64-bit Mersenne
-// Twister.
+// RFC-4122-ish v4 UUID from a CSPRNG (OpenSSL RAND_bytes). These strings are book
+// ids, contact/event ids AND - two concatenated - a book's ENCRYPTION KEY, so they
+// must be unpredictable: a Mersenne Twister seeded from one 32-bit random_device
+// value let anyone who saw a public book id brute-force the seed and so the key.
+// Output format is unchanged (8-4-4-4-12 lowercase hex, version nibble 4, variant
+// 8..b), so ids, keys and the key-derivation wire format stay identical.
 static std::string generateUuid() {
-    static std::mt19937_64 rng(std::random_device{}());
-    static std::uniform_int_distribution<int> hex(0, 15);
-    std::ostringstream oss;
-    oss << std::hex;
-    for (int i = 0; i < 32; i++) {
-        int r = hex(rng);
-        if (i == 8 || i == 12 || i == 16 || i == 20) oss << '-';
-        if (i == 12) oss << '4';
-        else if (i == 16) oss << (8 + (r & 3));
-        else oss << r;
+    unsigned char rnd[32];   // one byte per hex nibble (low 4 bits used)
+    if (RAND_bytes(rnd, sizeof rnd) != 1) {
+        // RAND_bytes only fails if OpenSSL can't seed at all; random_device is the
+        // OS CSPRNG (getrandom / /dev/urandom) on Linux - still never a PRNG.
+        std::random_device rd;
+        for (auto& b : rnd) b = (unsigned char)(rd() & 0xff);
     }
-    return oss.str();
+    static const char* hexd = "0123456789abcdef";
+    std::string out;
+    out.reserve(36);
+    for (int i = 0; i < 32; i++) {
+        int r = rnd[i] & 0xf;
+        if (i == 8 || i == 12 || i == 16 || i == 20) out.push_back('-');
+        if (i == 12) out.push_back('4');
+        else if (i == 16) out.push_back(hexd[8 + (r & 3)]);
+        else out.push_back(hexd[r]);
+    }
+    return out;
 }
 static long long nowMs() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
