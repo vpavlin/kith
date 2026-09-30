@@ -5,6 +5,7 @@
 #include <sstream>
 #include <filesystem>
 #include <cstdlib>
+#include <cstdio>
 
 namespace fs = std::filesystem;
 using kith::json;
@@ -27,12 +28,31 @@ static json readJson(const std::string& path) {
     std::stringstream ss; ss << f.rdbuf();
     return json::parse(ss.str(), nullptr, false);   // no-throw; returns discarded on error
 }
-// Atomic write: temp then rename.
-static void writeJson(const std::string& path, const json& j) {
+// True iff the file EXISTS but can't be read/parsed. A read-modify-write must then
+// refuse to write: rewriting from the (empty) parse result would wipe real data.
+static bool existsButUnreadable(const std::string& path) {
+    std::error_code ec;
+    if (!fs::exists(path, ec)) return false;
+    return readJson(path).is_discarded();
+}
+// Atomic write: temp then rename. The rename only happens after the whole temp file
+// was written and closed successfully (disk full / I/O error leaves the stream bad) -
+// on any failure the temp is dropped and the OLD file is kept intact.
+static bool writeJson(const std::string& path, const json& j) {
     const std::string tmp = path + ".tmp";
-    { std::ofstream f(tmp); if (!f) return; f << j.dump(); }
-    std::error_code ec; fs::rename(tmp, path, ec);
-    if (ec) { fs::remove(tmp, ec); }
+    std::error_code ec;
+    {
+        std::ofstream f(tmp, std::ios::out | std::ios::trunc);
+        if (!f) return false;
+        f << j.dump();
+        f.flush();
+        if (!f) { f.close(); fs::remove(tmp, ec); fprintf(stderr, "[kith] write failed: %s\n", path.c_str()); return false; }
+        f.close();
+        if (f.fail()) { fs::remove(tmp, ec); fprintf(stderr, "[kith] write failed: %s\n", path.c_str()); return false; }
+    }
+    fs::rename(tmp, path, ec);
+    if (ec) { fs::remove(tmp, ec); fprintf(stderr, "[kith] rename failed: %s\n", path.c_str()); return false; }
+    return true;
 }
 
 ContactStore::ContactStore() {
@@ -42,6 +62,7 @@ ContactStore::ContactStore() {
 }
 
 std::string ContactStore::bookFile() const { return m_dataDir + "/books.json"; }
+// Callers must pass a validated id (kith::isValidBookId) - never a raw string.
 std::string ContactStore::logFile(const std::string& id) const { return m_dataDir + "/logs/" + id + ".json"; }
 std::string ContactStore::kvFile() const { return m_dataDir + "/kv.json"; }
 
@@ -69,6 +90,8 @@ kith::BookReg ContactStore::book(const std::string& id) const {
     return {};
 }
 void ContactStore::upsertBook(const kith::BookReg& r) {
+    if (!kith::isValidBookId(r.id)) return;
+    if (existsButUnreadable(bookFile())) { fprintf(stderr, "[kith] books.json unreadable - not rewriting\n"); return; }
     auto bks = books();
     bool found = false;
     for (auto& b : bks) if (b.id == r.id) {
@@ -82,16 +105,19 @@ void ContactStore::upsertBook(const kith::BookReg& r) {
     writeJson(bookFile(), arr);
 }
 void ContactStore::removeBook(const std::string& id) {
+    if (existsButUnreadable(bookFile())) { fprintf(stderr, "[kith] books.json unreadable - not rewriting\n"); return; }
     auto bks = books();
     json arr = json::array();
     for (auto& b : bks) if (b.id != id) arr.push_back({{"id", b.id}, {"key", b.key}, {"name", b.name}});
-    writeJson(bookFile(), arr);
+    if (!writeJson(bookFile(), arr)) return;
+    if (!kith::isValidBookId(id)) return;   // never build a path from an unvalidated id
     std::error_code ec; fs::remove(logFile(id), ec);
 }
 
 // -- event log ---------------------------------------------------------------------
 std::vector<kith::Event> ContactStore::log(const std::string& bookId) const {
     std::vector<kith::Event> out;
+    if (!kith::isValidBookId(bookId)) return out;
     json arr = readJson(logFile(bookId));
     if (!arr.is_array()) return out;
     for (auto& j : arr) {
@@ -100,18 +126,22 @@ std::vector<kith::Event> ContactStore::log(const std::string& bookId) const {
     }
     return out;
 }
-void ContactStore::writeLog(const std::string& bookId, const std::vector<kith::Event>& evs) const {
+bool ContactStore::writeLog(const std::string& bookId, const std::vector<kith::Event>& evs) const {
+    if (!kith::isValidBookId(bookId)) return false;
     json arr = json::array();
     for (auto& e : evs) arr.push_back(kith::eventToJson(e));
-    writeJson(logFile(bookId), arr);
+    return writeJson(logFile(bookId), arr);
 }
 bool ContactStore::appendEvent(const std::string& bookId, const kith::Event& e) {
-    if (e.id.empty()) return false;
+    if (e.id.empty() || !kith::isValidBookId(bookId)) return false;
+    if (existsButUnreadable(logFile(bookId))) {
+        fprintf(stderr, "[kith] log for %s unreadable - not rewriting\n", bookId.c_str());
+        return false;
+    }
     auto evs = log(bookId);
     for (auto& x : evs) if (x.id == e.id) return false;   // dedup by id - idempotent redelivery
     evs.push_back(e);
-    writeLog(bookId, kith::mergeEvents(evs));              // keep HLC-sorted + unique
-    return true;
+    return writeLog(bookId, kith::mergeEvents(evs));       // keep HLC-sorted + unique
 }
 
 // -- kv ------------------------------------------------------------------------------
@@ -121,6 +151,7 @@ std::string ContactStore::kvGet(const std::string& key) const {
     return {};
 }
 void ContactStore::kvSet(const std::string& key, const std::string& value) {
+    if (existsButUnreadable(kvFile())) { fprintf(stderr, "[kith] kv.json unreadable - not rewriting\n"); return; }
     json o = readJson(kvFile());
     if (!o.is_object()) o = json::object();
     o[key] = value;

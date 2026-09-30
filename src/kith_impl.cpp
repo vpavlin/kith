@@ -521,6 +521,7 @@ std::string KithImpl::parseShareLink(const std::string& link) {
     auto q = parseQuery(link);
     std::string id = q["id"], key = b64urlDecode(q["key"]), name = q["name"];
     if (id.empty() || key.empty()) return "";
+    if (!kith::isValidBookId(id)) return "";   // the id becomes a file name - UUIDs only
     return json{{"id", id}, {"key", key}, {"name", name}}.dump();
 }
 bool KithImpl::handleShareLink(const std::string& link, const std::string& identityId) {
@@ -528,7 +529,7 @@ bool KithImpl::handleShareLink(const std::string& link, const std::string& ident
     if (parsed.empty()) return false;
     json j = json::parse(parsed, nullptr, false);
     std::string id = j.value("id", std::string()), key = j.value("key", std::string()), name = j.value("name", std::string());
-    if (id.empty() || key.empty()) return false;
+    if (id.empty() || key.empty() || !kith::isValidBookId(id)) return false;
     m_store->upsertBook({ id, key, name });
     m_sync->startSync(id, key);
     // Bind the chosen identity (kith ADR 0003: Loam owns WHO) so YOUR writes on this
