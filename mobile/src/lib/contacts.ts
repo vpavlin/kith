@@ -49,23 +49,44 @@ async function mkEvent(type: string, payload: any): Promise<Event> {
   const id = await getIdentity();
   return signEvent(id, e) as Event;
 }
-// Append locally (persist FIRST — the authored event has no other copy until
-// it's both on disk and on the wire), then broadcast the raw event JSON.
+// Local-first: persist FIRST (the authored event has no other copy until it's on
+// disk), render immediately, and send in the BACKGROUND — never await the wire. A
+// send that fails or never lands is covered by RBSR catch-up / store sync.
 async function publishAndApply(bookId: string, e: Event): Promise<void> {
   await store.appendEvent(bookId, e);
-  await sync.sendEvent(bookId, JSON.stringify(eventToJson(e))).catch(() => {});
+  notifyChange();
+  void sync.sendEvent(bookId, JSON.stringify(eventToJson(e))).catch(() => {});
 }
 
 // ── catch-up (logos-sync v2 RBSR) ────────────────────────────────────────────
+// Legacy (pre-v2) peers' bare SYNC_REQ re-serves the WHOLE log — at most once per
+// 30 s per book, however many such requests arrive.
+const SERVE_LOG_EVERY_MS = 30_000;
 const lastServe: Record<string, number> = {};
 async function serveLog(bookId: string): Promise<void> {
   const now = Date.now();
-  if (lastServe[bookId] && now - lastServe[bookId] < 3000) return;
+  if (lastServe[bookId] && now - lastServe[bookId] < SERVE_LOG_EVERY_MS) return;
   lastServe[bookId] = now;
   for (const e of await store.getLog(bookId)) {
     await sync.sendEvent(bookId, JSON.stringify(eventToJson(e))).catch(() => {});
   }
 }
+// A round-OPENING fp (no lo/hi: a peer's buildInitial) is answered at most once per
+// (peer, book) per 10 s — every peer re-asks on start and at 9/24 s, and several
+// devices answering each of those in full floods the channel. Recursive sub-range
+// fp/ids/need steps of a round in progress are never throttled.
+const OPEN_FP_EVERY_MS = 10_000;
+const lastOpenFp = new Map<string, number>();
+function throttleOpeningFp(bookId: string, msg: any): boolean {
+  if (msg.t !== "fp" || msg.lo !== undefined || msg.hi !== undefined) return false;
+  const k = bookId + "|" + String(msg.from ?? "");
+  const now = Date.now();
+  const last = lastOpenFp.get(k);
+  if (last !== undefined && now - last < OPEN_FP_EVERY_MS) return true;
+  lastOpenFp.set(k, now);
+  return false;
+}
+
 async function sendSyncReq(bookId: string): Promise<void> {
   const msg = buildInitial(await store.getLog(bookId), deviceId);
   const e = await mkEvent(ET.SYNC_REQ, msg);
@@ -128,6 +149,7 @@ sync.setEventHandler((bookId, eventJson) => {
       if (e.type === ET.SYNC_REQ) {
         const msg: any = e.payload;
         if (!msg || !msg.t) { await serveLog(bookId); return; }
+        if (throttleOpeningFp(bookId, msg)) return;
         const step = respond(await store.getLog(bookId), msg, deviceId);
         for (const ev of step.serve)
           await sync.sendEvent(bookId, JSON.stringify(eventToJson(ev))).catch(() => {});
@@ -136,7 +158,9 @@ sync.setEventHandler((bookId, eventJson) => {
         return;
       }
       (await ensureClock()).receive(e.hlc); // advance past the ingested cause
-      const isNew = await store.appendEvent(bookId, e); // idempotent (dedup by id)
+      // requireMember: a book removed from this device must not be recreated by a
+      // late event still in flight. Idempotent (dedup by id).
+      const isNew = await store.appendEvent(bookId, e, { requireMember: true });
       if (isNew) notifyChange();
     } catch (err) {
       // Malformed event → ignore. A storage failure is NOT swallowed silently: the
@@ -158,6 +182,7 @@ export async function createBook(name: string): Promise<Book> {
 }
 
 export async function deleteBook(bookId: string): Promise<void> {
+  sync.leaveBook(bookId); // stop routing its topic first, so no event recreates the log
   await store.removeBook(bookId);
   notifyChange();
 }
@@ -166,18 +191,15 @@ export async function addContact(bookId: string, fields: Omit<Contact, "id">): P
   const id = Crypto.randomUUID();
   const payload = { ...fields, id };
   await publishAndApply(bookId, await mkEvent(ET.CONTACT_SET, payload));
-  notifyChange();
   return { ...fields, id } as Contact;
 }
 
 export async function editContact(bookId: string, contact: Contact): Promise<void> {
   await publishAndApply(bookId, await mkEvent(ET.CONTACT_SET, contact));
-  notifyChange();
 }
 
 export async function deleteContact(bookId: string, contactId: string): Promise<void> {
   await publishAndApply(bookId, await mkEvent(ET.CONTACT_DEL, { id: contactId }));
-  notifyChange();
 }
 
 export async function searchContacts(query: string): Promise<{ bookId: string; contact: Contact }[]> {
@@ -211,8 +233,9 @@ export async function joinFromInvite(link: string): Promise<Book | null> {
 }
 
 // ── shared-node preference ──────────────────────────────────────────────────
+// Default ON (the Loam shared node): only an explicit "0" opts out.
 export async function getSharedNode(): Promise<boolean> {
-  return (await SecureStore.getItemAsync("kith-shared-node")) === "1";
+  return (await SecureStore.getItemAsync("kith-shared-node")) !== "0";
 }
 export async function setSharedNode(on: boolean): Promise<void> {
   await SecureStore.setItemAsync("kith-shared-node", on ? "1" : "0");

@@ -77,4 +77,12 @@ await check("removeBook clears the index and every chunk", async () => {
   assert.equal((await store.getRegistry()).length, 0);
 });
 
+await check("requireMember: an event for a removed book doesn't recreate its log", async () => {
+  await store.upsertReg({ id: "b7", key: "k", name: "n" });
+  assert.equal(await store.appendEvent("b7", ev(1), { requireMember: true }), true);
+  await store.removeBook("b7");
+  assert.equal(await store.appendEvent("b7", ev(2), { requireMember: true }), false);
+  assert.equal(S.__map.has("kith.log.b7"), false);
+});
+
 console.log(`STORE OK — ${n} checks passed.`);

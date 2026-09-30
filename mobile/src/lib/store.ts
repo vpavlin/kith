@@ -196,9 +196,13 @@ async function getLog(bookId: string): Promise<Event[]> {
 }
 // Merge one event into the log (dedup by id), persist. Returns true if NEW.
 // Serialized per book; a failed read throws BEFORE any write (never clobbers data).
-function appendEvent(bookId: string, ev: Event): Promise<boolean> {
+// requireMember: drop the event unless the book is still in the registry (checked
+// under the log lock — removeBook drops the registry row before it takes that lock,
+// so a late inbound event can't recreate a removed book's log).
+function appendEvent(bookId: string, ev: Event, opts?: { requireMember?: boolean }): Promise<boolean> {
   if (!ev.id) return Promise.resolve(false);
   return withLock(logLock(bookId), async () => {
+    if (opts?.requireMember && !(await getReg(bookId))) return false;
     const log = await getLog(bookId);
     if (log.some((x) => x.id === ev.id)) return false; // dedup — idempotent redelivery
     const merged = mergeEvents([...log, ev]); // keep HLC-sorted + unique

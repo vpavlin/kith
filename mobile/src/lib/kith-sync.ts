@@ -121,6 +121,13 @@ export async function joinBook(bookId: string, encryptionKey: string): Promise<v
   if (transport.getCtx()) await transport.join([topicForBook(bookId)]);
 }
 
+/** Drop a book's route (book removed from this device): inbound messages on its
+ *  topic are no longer opened/delivered, and sends for it become no-ops. The
+ *  transport has no per-topic leave, so the (shared) subscription itself stays. */
+export function leaveBook(bookId: string): void {
+  routes = routes.filter((r) => r.bookId !== bookId);
+}
+
 /** Publish one CRDT event on a book's channel (sealed with its key). The
  *  argument is the event's JSON string (engine.eventToJson → JSON.stringify). */
 export async function sendEvent(bookId: string, eventJson: string): Promise<void> {
