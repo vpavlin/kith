@@ -63,10 +63,14 @@ export async function getAddress(): Promise<string> { return (await getIdentity(
 export function shortAddr(a: string): string { return a && a.length > 12 ? a.slice(0, 6) + "…" + a.slice(-4) : a || ""; }
 
 // Deterministic canonical form of an event's SIGNED fields (everything except pub/sig).
+// Object keys whose value is undefined are SKIPPED — JSON.stringify drops them, so after
+// storage/the wire (and on the desktop) the key simply isn't there; signing it as "null"
+// would make the event fail verification once it round-trips. (Array holes stay "null",
+// which is what JSON.stringify writes for them.)
 function cjson(v: any): string {
   if (v === null || v === undefined) return "null";
   if (Array.isArray(v)) return "[" + v.map(cjson).join(",") + "]";
-  if (typeof v === "object") { const ks = Object.keys(v).sort(); return "{" + ks.map((k) => JSON.stringify(k) + ":" + cjson(v[k])).join(",") + "}"; }
+  if (typeof v === "object") { const ks = Object.keys(v).filter((k) => v[k] !== undefined).sort(); return "{" + ks.map((k) => JSON.stringify(k) + ":" + cjson(v[k])).join(",") + "}"; }
   if (typeof v === "string") return JSON.stringify(v);
   if (typeof v === "number") return String(v);
   if (typeof v === "boolean") return v ? "true" : "false";

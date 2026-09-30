@@ -39,7 +39,10 @@ async function ensureClock(): Promise<Clock> {
 }
 async function mkEvent(type: string, payload: any): Promise<Event> {
   const c = await ensureClock();
-  const e: Event = { v: 1, id: Crypto.randomUUID(), type, hlc: c.send(Date.now()), dev: deviceId, payload };
+  // JSON round-trip the payload: strips undefined at EVERY depth (and NaN → null, etc.)
+  // so the signed bytes are exactly what storage/the wire/the desktop will see.
+  const clean = JSON.parse(JSON.stringify(payload ?? {}));
+  const e: Event = { v: 1, id: Crypto.randomUUID(), type, hlc: c.send(Date.now()), dev: deviceId, payload: clean };
   // Transient sync msgs (SYNC_REQ) fire constantly and are never folded, but
   // kith_engine.hpp still requires EVERY event to carry a valid signature (the
   // fold drops unsigned events outright) — sign everything, always.
