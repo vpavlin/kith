@@ -327,7 +327,7 @@ void KithImpl::ensureDelivery() { if (m_sync) m_sync->bootstrap(); }
 // -- identity -------------------------------------------------------------------------
 // Keep in sync with metadata.json "version". The view compares this to the minimum
 // it needs and warns on a stale core.
-std::string KithImpl::coreVersion() const { return "0.2.1"; }
+std::string KithImpl::coreVersion() const { return "0.2.2"; }
 std::string KithImpl::getIdentity() const { return m_identity; }
 
 // -- books ------------------------------------------------------------------------------
