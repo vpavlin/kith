@@ -57,9 +57,17 @@ export default function App() {
   const [importText, setImportText] = useState("");
   const [showImport, setShowImport] = useState(false);
 
+  // A storage read failure (e.g. an unreadable row) is SURFACED, never papered over
+  // with an empty list — the store refuses to write after a failed read (store.ts).
+  const [storageErr, setStorageErr] = useState<string | null>(null);
   const refresh = useCallback(async () => {
-    setBooks(await store.listBooks());
-    if (activeBookId) setContacts(await store.contactsFor(activeBookId));
+    try {
+      setBooks(await store.listBooks());
+      if (activeBookId) setContacts(await store.contactsFor(activeBookId));
+      setStorageErr(null);
+    } catch (e) {
+      setStorageErr(msg(e));
+    }
   }, [activeBookId]);
 
   useEffect(() => { const off = onChange(() => { void refresh(); }); return off; }, [refresh]);
@@ -165,6 +173,9 @@ export default function App() {
           )}
           <Text style={s.statusChip} numberOfLines={1} ellipsizeMode="tail">{status}</Text>
         </View>
+        {storageErr && (
+          <Text style={s.errBanner} selectable>Storage error (nothing was overwritten): {storageErr}</Text>
+        )}
 
         {!activeBook && (
           <>
@@ -333,6 +344,7 @@ const s = StyleSheet.create({
   title: { color: C.gilt, fontSize: 22, fontWeight: "800", letterSpacing: 0.5 },
   back: { color: C.primary, fontSize: 16, paddingVertical: 8 },
   statusChip: { color: C.sub, fontSize: 11, textTransform: "uppercase", flexShrink: 1, textAlign: "right" },
+  errBanner: { color: C.danger, fontSize: 12, paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: C.border },
   bookTitleBig: { color: C.text, fontSize: 20, fontWeight: "800", paddingHorizontal: 16, marginBottom: 4 },
   searchRow: { paddingHorizontal: 16, marginBottom: 8 },
   search: { backgroundColor: C.surface, color: C.text, borderRadius: 10, padding: 10, borderWidth: 1, borderColor: C.border },

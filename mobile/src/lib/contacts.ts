@@ -7,7 +7,7 @@
 import * as Crypto from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
 import { fromByteArray, toByteArray } from "base64-js";
-import { store, Book, Contact } from "./store";
+import { store, Book, Contact, StorageReadError } from "./store";
 import { Event, ET, Clock, eventToJson, eventFromJson, foldBook } from "./engine";
 import { utf8Bytes, utf8Decode } from "./utf8";
 import { getIdentity, getAddress, signEvent } from "./identity";
@@ -135,8 +135,10 @@ sync.setEventHandler((bookId, eventJson) => {
       (await ensureClock()).receive(e.hlc); // advance past the ingested cause
       const isNew = await store.appendEvent(bookId, e); // idempotent (dedup by id)
       if (isNew) notifyChange();
-    } catch {
-      /* malformed event — ignore */
+    } catch (err) {
+      // Malformed event → ignore. A storage failure is NOT swallowed silently: the
+      // store refused to write (nothing clobbered) — log it; the UI surfaces it on refresh.
+      if (err instanceof StorageReadError) console.warn("kith: inbound event not stored:", err.message);
     }
   })();
 });
