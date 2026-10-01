@@ -298,7 +298,7 @@ Item {
         background: Rectangle { radius: Theme.spacing.radiusMedium; color: Theme.palette.backgroundElevated; border.width: 1; border.color: Theme.palette.borderHairline }
         ColumnLayout {
             anchors.fill: parent; spacing: Theme.spacing.medium
-            LogosText { text: root.confirmText; color: Theme.palette.text; font.pixelSize: 14; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            LogosText { textFormat: Text.PlainText; text: root.confirmText; color: Theme.palette.text; font.pixelSize: 14; wrapMode: Text.WordWrap; Layout.fillWidth: true }
             RowLayout {
                 Layout.fillWidth: true; spacing: Theme.spacing.small
                 Item { Layout.fillWidth: true }
@@ -325,8 +325,8 @@ Item {
             id: bannerCol
             anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; leftMargin: 16; rightMargin: 16 }
             spacing: 1
-            LogosText { text: "⚠  Kith core is out of date" + (root.coreVer ? " (v" + root.coreVer + ")" : ""); color: root.kInk; font.pixelSize: 14 }
-            LogosText { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "Update the 'kith' package to " + root.minCore + "+ in Basecamp."; color: root.kInk; font.pixelSize: 12 }
+            LogosText { textFormat: Text.PlainText; text: "⚠  Kith core is out of date" + (root.coreVer ? " (v" + root.coreVer + ")" : ""); color: root.kInk; font.pixelSize: 14 }
+            LogosText { textFormat: Text.PlainText; Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "Update the 'kith' package to " + root.minCore + "+ in Basecamp."; color: root.kInk; font.pixelSize: 12 }
         }
     }
 
@@ -345,7 +345,7 @@ Item {
                 anchors.margins: Theme.spacing.medium
                 spacing: Theme.spacing.small
 
-                LogosText { text: "Books"; color: root.kGilt; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
+                LogosText { textFormat: Text.PlainText; text: "Books"; color: root.kGilt; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
 
                 ListView {
                     Layout.fillWidth: true; Layout.fillHeight: true; clip: true
@@ -361,16 +361,16 @@ Item {
                                 Layout.fillWidth: true; Layout.alignment: Qt.AlignVCenter; spacing: 1
                                 RowLayout {
                                     Layout.fillWidth: true; spacing: 4
-                                    LogosText { text: modelData.name || "(unnamed)"; color: Theme.palette.text; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
-                                    LogosText { visible: !!modelData.syncing; text: "🔄"; font.pixelSize: 11 }
+                                    LogosText { textFormat: Text.PlainText; text: modelData.name || "(unnamed)"; color: Theme.palette.text; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
+                                    LogosText { textFormat: Text.PlainText; visible: !!modelData.syncing; text: "🔄"; font.pixelSize: 11 }
                                 }
-                                LogosText {
+                                LogosText { textFormat: Text.PlainText;
                                     text: modelData.contactCount + " contact" + (modelData.contactCount === 1 ? "" : "s")
                                           + (modelData.authorAddr ? "  ·  " + root.shortAddr(modelData.authorAddr) : "")
                                     color: Theme.palette.textTertiary; font.pixelSize: 11; Layout.fillWidth: true; elide: Text.ElideRight
                                 }
                             }
-                            LogosText {
+                            LogosText { textFormat: Text.PlainText;
                                 text: "✕"; color: Theme.palette.textTertiary; font.pixelSize: 14; Layout.alignment: Qt.AlignVCenter
                                 MouseArea {
                                     anchors.fill: parent; anchors.margins: -4
@@ -387,7 +387,7 @@ Item {
                     }
                 }
 
-                LogosText {
+                LogosText { textFormat: Text.PlainText;
                     visible: root.books.length === 0
                     Layout.fillWidth: true; wrapMode: Text.WordWrap
                     text: "No books yet. Create one to start adding contacts."
@@ -416,7 +416,7 @@ Item {
                 visible: root.selectedBookId === ""
                 anchors.centerIn: parent
                 spacing: Theme.spacing.small
-                LogosText { text: "Select or create a book"; color: Theme.palette.textTertiary; font.pixelSize: 16; Layout.alignment: Qt.AlignHCenter }
+                LogosText { textFormat: Text.PlainText; text: "Select or create a book"; color: Theme.palette.textTertiary; font.pixelSize: 16; Layout.alignment: Qt.AlignHCenter }
             }
 
             ColumnLayout {
@@ -427,7 +427,7 @@ Item {
 
                 RowLayout {
                     Layout.fillWidth: true; spacing: Theme.spacing.small
-                    LogosText {
+                    LogosText { textFormat: Text.PlainText;
                         text: root.bookById(root.selectedBookId) ? root.bookById(root.selectedBookId).name : ""
                         color: Theme.palette.text; font.pixelSize: 20; font.weight: Theme.typography.weightMedium
                         Layout.fillWidth: true; elide: Text.ElideRight
@@ -462,14 +462,14 @@ Item {
                         color: Theme.palette.backgroundInset
                         RowLayout {
                             anchors.fill: parent; anchors.leftMargin: Theme.spacing.small; anchors.rightMargin: Theme.spacing.small; spacing: Theme.spacing.small
-                            LogosText {
+                            LogosText { textFormat: Text.PlainText;
                                 text: root.hasIdentity(modelData) ? "🔑" : "👤"
                                 font.pixelSize: 16; Layout.alignment: Qt.AlignVCenter
                             }
                             ColumnLayout {
                                 Layout.fillWidth: true; Layout.alignment: Qt.AlignVCenter; spacing: 1
-                                LogosText { text: root.contactName(modelData); color: Theme.palette.text; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
-                                LogosText {
+                                LogosText { textFormat: Text.PlainText; text: root.contactName(modelData); color: Theme.palette.text; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
+                                LogosText { textFormat: Text.PlainText;
                                     text: root.contactSecondary(modelData)
                                     visible: text.length > 0
                                     color: Theme.palette.textTertiary; font.pixelSize: 11; Layout.fillWidth: true; elide: Text.ElideRight
@@ -480,7 +480,7 @@ Item {
                     }
                 }
 
-                LogosText {
+                LogosText { textFormat: Text.PlainText;
                     visible: root.contactsFiltered().length === 0
                     Layout.alignment: Qt.AlignHCenter
                     text: root.contacts.length === 0 ? "No contacts in this book yet." : "No contacts match your search."
@@ -497,7 +497,7 @@ Item {
         anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter; bottomMargin: 16 }
         width: Math.min(root.width - 32, errText.implicitWidth + 32); height: errText.implicitHeight + 16
         radius: Theme.spacing.radiusSmall; color: root.kRubric
-        LogosText { id: errText; anchors.centerIn: parent; width: parent.width - 32; wrapMode: Text.WordWrap; text: root.actionError; color: root.kInk; font.pixelSize: 12 }
+        LogosText { textFormat: Text.PlainText; id: errText; anchors.centerIn: parent; width: parent.width - 32; wrapMode: Text.WordWrap; text: root.actionError; color: root.kInk; font.pixelSize: 12 }
         MouseArea { anchors.fill: parent; onClicked: root.actionError = "" }
     }
 
@@ -511,12 +511,12 @@ Item {
         onOpened: { newBookName.text = ""; root.newBookIdentity = "" }
         ColumnLayout {
             anchors.fill: parent; spacing: Theme.spacing.small
-            LogosText { text: "New book"; color: Theme.palette.text; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
+            LogosText { textFormat: Text.PlainText; text: "New book"; color: Theme.palette.text; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
 
-            LogosText { text: "Name"; color: Theme.palette.textTertiary; font.pixelSize: 11 }
+            LogosText { textFormat: Text.PlainText; text: "Name"; color: Theme.palette.textTertiary; font.pixelSize: 11 }
             Field { id: newBookName; Layout.fillWidth: true; placeholderText: "e.g. Personal, Household, Work" }
 
-            LogosText { text: "Author as"; color: Theme.palette.textTertiary; font.pixelSize: 11 }
+            LogosText { textFormat: Text.PlainText; text: "Author as"; color: Theme.palette.textTertiary; font.pixelSize: 11 }
             Flow {
                 Layout.fillWidth: true; spacing: Theme.spacing.small
                 Repeater {
@@ -528,12 +528,12 @@ Item {
                         border.width: 1
                         border.color: chipSel ? root.kGilt : Theme.palette.borderHairline
                         implicitHeight: nbChipT.implicitHeight + 10; implicitWidth: nbChipT.implicitWidth + 22
-                        LogosText { id: nbChipT; anchors.centerIn: parent; text: modelData.label; font.pixelSize: 12; color: parent.chipSel ? "#2A2118" : Theme.palette.text }
+                        LogosText { textFormat: Text.PlainText; id: nbChipT; anchors.centerIn: parent; text: modelData.label; font.pixelSize: 12; color: parent.chipSel ? "#2A2118" : Theme.palette.text }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.newBookIdentity = modelData.id }
                     }
                 }
             }
-            LogosText { text: "This identity owns the book and signs its contact edits."; color: Theme.palette.textTertiary; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            LogosText { textFormat: Text.PlainText; text: "This identity owns the book and signs its contact edits."; color: Theme.palette.textTertiary; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
 
             RowLayout {
                 Layout.fillWidth: true; Layout.topMargin: Theme.spacing.small; spacing: Theme.spacing.small
@@ -642,7 +642,7 @@ Item {
 
         ColumnLayout {
             anchors.fill: parent; spacing: Theme.spacing.small
-            LogosText { text: root.editingContact ? "Edit contact" : "New contact"; color: Theme.palette.text; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
+            LogosText { textFormat: Text.PlainText; text: root.editingContact ? "Edit contact" : "New contact"; color: Theme.palette.text; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
 
             Flickable {
                 Layout.fillWidth: true; Layout.fillHeight: true
@@ -653,59 +653,59 @@ Item {
                     id: contactBody
                     width: parent.width; spacing: Theme.spacing.small
 
-                    LogosText { text: "Display name"; color: Theme.palette.textTertiary; font.pixelSize: 11 }
+                    LogosText { textFormat: Text.PlainText; text: "Display name"; color: Theme.palette.textTertiary; font.pixelSize: 11 }
                     Field { id: cName; Layout.fillWidth: true; placeholderText: "Full name" }
                     RowLayout {
                         Layout.fillWidth: true; spacing: Theme.spacing.small
-                        ColumnLayout { Layout.fillWidth: true; LogosText { text: "Given"; color: Theme.palette.textTertiary; font.pixelSize: 11 } Field { id: cGiven; Layout.fillWidth: true } }
-                        ColumnLayout { Layout.fillWidth: true; LogosText { text: "Family"; color: Theme.palette.textTertiary; font.pixelSize: 11 } Field { id: cFamily; Layout.fillWidth: true } }
+                        ColumnLayout { Layout.fillWidth: true; LogosText { textFormat: Text.PlainText; text: "Given"; color: Theme.palette.textTertiary; font.pixelSize: 11 } Field { id: cGiven; Layout.fillWidth: true } }
+                        ColumnLayout { Layout.fillWidth: true; LogosText { textFormat: Text.PlainText; text: "Family"; color: Theme.palette.textTertiary; font.pixelSize: 11 } Field { id: cFamily; Layout.fillWidth: true } }
                     }
-                    LogosText { text: "Organization"; color: Theme.palette.textTertiary; font.pixelSize: 11 }
+                    LogosText { textFormat: Text.PlainText; text: "Organization"; color: Theme.palette.textTertiary; font.pixelSize: 11 }
                     Field { id: cOrg; Layout.fillWidth: true; placeholderText: "Optional" }
 
                     Rectangle { Layout.fillWidth: true; height: 1; color: Theme.palette.borderHairline; Layout.topMargin: 4 }
 
                     // ── phones ──
-                    LogosText { text: "Phones"; color: Theme.palette.text; font.pixelSize: 13; font.weight: Theme.typography.weightMedium }
+                    LogosText { textFormat: Text.PlainText; text: "Phones"; color: Theme.palette.text; font.pixelSize: 13; font.weight: Theme.typography.weightMedium }
                     Repeater {
                         model: phonesModel
                         delegate: RowLayout {
                             Layout.fillWidth: true; spacing: Theme.spacing.small
                             ComboBox { Layout.preferredWidth: 100; model: root.phoneLabels; currentIndex: root.phoneLabels.indexOf(model.label); onActivated: function (i) { phonesModel.setProperty(index, "label", root.phoneLabels[i]) } }
                             Field { Layout.fillWidth: true; placeholderText: "phone number"; text: model.value; onTextChanged: phonesModel.setProperty(index, "value", text) }
-                            LogosText { text: "✕"; color: Theme.palette.textTertiary; font.pixelSize: 14; MouseArea { anchors.fill: parent; anchors.margins: -4; onClicked: phonesModel.remove(index) } }
+                            LogosText { textFormat: Text.PlainText; text: "✕"; color: Theme.palette.textTertiary; font.pixelSize: 14; MouseArea { anchors.fill: parent; anchors.margins: -4; onClicked: phonesModel.remove(index) } }
                         }
                     }
                     LogosButton { text: "+ Add phone"; onClicked: phonesModel.append({ label: "mobile", value: "" }) }
 
                     // ── emails ──
-                    LogosText { text: "Emails"; color: Theme.palette.text; font.pixelSize: 13; font.weight: Theme.typography.weightMedium; Layout.topMargin: 4 }
+                    LogosText { textFormat: Text.PlainText; text: "Emails"; color: Theme.palette.text; font.pixelSize: 13; font.weight: Theme.typography.weightMedium; Layout.topMargin: 4 }
                     Repeater {
                         model: emailsModel
                         delegate: RowLayout {
                             Layout.fillWidth: true; spacing: Theme.spacing.small
                             ComboBox { Layout.preferredWidth: 100; model: root.phoneLabels; currentIndex: root.phoneLabels.indexOf(model.label); onActivated: function (i) { emailsModel.setProperty(index, "label", root.phoneLabels[i]) } }
                             Field { Layout.fillWidth: true; placeholderText: "email address"; text: model.value; onTextChanged: emailsModel.setProperty(index, "value", text) }
-                            LogosText { text: "✕"; color: Theme.palette.textTertiary; font.pixelSize: 14; MouseArea { anchors.fill: parent; anchors.margins: -4; onClicked: emailsModel.remove(index) } }
+                            LogosText { textFormat: Text.PlainText; text: "✕"; color: Theme.palette.textTertiary; font.pixelSize: 14; MouseArea { anchors.fill: parent; anchors.margins: -4; onClicked: emailsModel.remove(index) } }
                         }
                     }
                     LogosButton { text: "+ Add email"; onClicked: emailsModel.append({ label: "home", value: "" }) }
 
                     // ── handles ──
-                    LogosText { text: "Messaging handles"; color: Theme.palette.text; font.pixelSize: 13; font.weight: Theme.typography.weightMedium; Layout.topMargin: 4 }
+                    LogosText { textFormat: Text.PlainText; text: "Messaging handles"; color: Theme.palette.text; font.pixelSize: 13; font.weight: Theme.typography.weightMedium; Layout.topMargin: 4 }
                     Repeater {
                         model: handlesModel
                         delegate: RowLayout {
                             Layout.fillWidth: true; spacing: Theme.spacing.small
                             ComboBox { Layout.preferredWidth: 100; model: root.handleKinds; currentIndex: root.handleKinds.indexOf(model.kind); onActivated: function (i) { handlesModel.setProperty(index, "kind", root.handleKinds[i]) } }
                             Field { Layout.fillWidth: true; placeholderText: "handle / username"; text: model.value; onTextChanged: handlesModel.setProperty(index, "value", text) }
-                            LogosText { text: "✕"; color: Theme.palette.textTertiary; font.pixelSize: 14; MouseArea { anchors.fill: parent; anchors.margins: -4; onClicked: handlesModel.remove(index) } }
+                            LogosText { textFormat: Text.PlainText; text: "✕"; color: Theme.palette.textTertiary; font.pixelSize: 14; MouseArea { anchors.fill: parent; anchors.margins: -4; onClicked: handlesModel.remove(index) } }
                         }
                     }
                     LogosButton { text: "+ Add handle"; onClicked: handlesModel.append({ kind: "telegram", value: "" }) }
 
                     // ── addresses ──
-                    LogosText { text: "Addresses"; color: Theme.palette.text; font.pixelSize: 13; font.weight: Theme.typography.weightMedium; Layout.topMargin: 4 }
+                    LogosText { textFormat: Text.PlainText; text: "Addresses"; color: Theme.palette.text; font.pixelSize: 13; font.weight: Theme.typography.weightMedium; Layout.topMargin: 4 }
                     Repeater {
                         model: addressesModel
                         delegate: ColumnLayout {
@@ -714,7 +714,7 @@ Item {
                                 Layout.fillWidth: true; spacing: Theme.spacing.small
                                 ComboBox { Layout.preferredWidth: 100; model: root.phoneLabels; currentIndex: root.phoneLabels.indexOf(model.label); onActivated: function (i) { addressesModel.setProperty(index, "label", root.phoneLabels[i]) } }
                                 Field { Layout.fillWidth: true; placeholderText: "street"; text: model.street; onTextChanged: addressesModel.setProperty(index, "street", text) }
-                                LogosText { text: "✕"; color: Theme.palette.textTertiary; font.pixelSize: 14; MouseArea { anchors.fill: parent; anchors.margins: -4; onClicked: addressesModel.remove(index) } }
+                                LogosText { textFormat: Text.PlainText; text: "✕"; color: Theme.palette.textTertiary; font.pixelSize: 14; MouseArea { anchors.fill: parent; anchors.margins: -4; onClicked: addressesModel.remove(index) } }
                             }
                             RowLayout {
                                 Layout.fillWidth: true; spacing: Theme.spacing.small
@@ -729,7 +729,7 @@ Item {
 
                     Rectangle { Layout.fillWidth: true; height: 1; color: Theme.palette.borderHairline; Layout.topMargin: 4 }
 
-                    LogosText { text: "Notes"; color: Theme.palette.textTertiary; font.pixelSize: 11 }
+                    LogosText { textFormat: Text.PlainText; text: "Notes"; color: Theme.palette.textTertiary; font.pixelSize: 11 }
                     // Plain multi-line TextArea (not gated by the design system), themed with tokens.
                     TextArea {
                         id: cNotes
@@ -744,7 +744,7 @@ Item {
                     // ── Loam identity (kith ADR 0002/0003) — the optional cryptographic principal ──
                     RowLayout {
                         Layout.fillWidth: true
-                        LogosText { text: "🔑 Loam identity"; color: Theme.palette.text; font.pixelSize: 13; font.weight: Theme.typography.weightMedium; Layout.fillWidth: true }
+                        LogosText { textFormat: Text.PlainText; text: "🔑 Loam identity"; color: Theme.palette.text; font.pixelSize: 13; font.weight: Theme.typography.weightMedium; Layout.fillWidth: true }
                         LogosButton {
                             text: root.cHasIdentity ? "Remove" : "+ Add"
                             onClicked: {
@@ -753,7 +753,7 @@ Item {
                             }
                         }
                     }
-                    LogosText {
+                    LogosText { textFormat: Text.PlainText;
                         visible: !root.cHasIdentity
                         Layout.fillWidth: true; wrapMode: Text.WordWrap
                         text: "No identity — this contact is a human reference only (name/phone/email), not a grantable principal in other apps."
@@ -762,9 +762,9 @@ Item {
                     ColumnLayout {
                         visible: root.cHasIdentity
                         Layout.fillWidth: true; spacing: 2
-                        LogosText { text: "Address"; color: Theme.palette.textTertiary; font.pixelSize: 11 }
+                        LogosText { textFormat: Text.PlainText; text: "Address"; color: Theme.palette.textTertiary; font.pixelSize: 11 }
                         Field { id: cIdAddrField; Layout.fillWidth: true; placeholderText: "0x…"; onTextChanged: root.cIdentityAddr = text }
-                        LogosText { text: "Public key (hex, optional)"; color: Theme.palette.textTertiary; font.pixelSize: 11 }
+                        LogosText { textFormat: Text.PlainText; text: "Public key (hex, optional)"; color: Theme.palette.textTertiary; font.pixelSize: 11 }
                         Field { id: cIdPubField; Layout.fillWidth: true; placeholderText: "hex pubkey"; onTextChanged: root.cIdentityPub = text }
                         RowLayout {
                             spacing: 8
@@ -772,11 +772,11 @@ Item {
                                 width: 20; height: 20; radius: 5
                                 color: root.cIdentityVerified ? Theme.palette.primary : Theme.palette.background
                                 border.width: 1; border.color: Theme.palette.borderHairline
-                                LogosText { anchors.centerIn: parent; visible: root.cIdentityVerified; text: "✓"; color: Theme.palette.background; font.pixelSize: 13 }
+                                LogosText { textFormat: Text.PlainText; anchors.centerIn: parent; visible: root.cIdentityVerified; text: "✓"; color: Theme.palette.background; font.pixelSize: 13 }
                                 MouseArea { anchors.fill: parent; onClicked: root.cIdentityVerified = !root.cIdentityVerified }
                             }
-                            LogosText { text: "Verified"; color: Theme.palette.text; font.pixelSize: 12 }
-                            LogosText { text: "  ·  added via " + root.cIdentityAddedVia; color: Theme.palette.textTertiary; font.pixelSize: 11 }
+                            LogosText { textFormat: Text.PlainText; text: "Verified"; color: Theme.palette.text; font.pixelSize: 12 }
+                            LogosText { textFormat: Text.PlainText; text: "  ·  added via " + root.cIdentityAddedVia; color: Theme.palette.textTertiary; font.pixelSize: 11 }
                         }
                     }
 
@@ -784,7 +784,7 @@ Item {
                     ColumnLayout {
                         visible: root.editingContact !== null
                         Layout.fillWidth: true; Layout.topMargin: 4; spacing: 1
-                        LogosText {
+                        LogosText { textFormat: Text.PlainText;
                             visible: root.editingContact && root.editingContact.authorAddr
                             text: "Authored by " + (root.editingContact ? root.shortAddr(root.editingContact.authorAddr) : "")
                             color: Theme.palette.textTertiary; font.pixelSize: 10
@@ -818,8 +818,8 @@ Item {
         onOpened: { vcardInput.text = ""; root.importResult = "" }
         ColumnLayout {
             anchors.fill: parent; spacing: Theme.spacing.small
-            LogosText { text: "Import vCard"; color: Theme.palette.text; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
-            LogosText { text: "Paste one or more vCard 4.0 entries (.vcf text) below."; color: Theme.palette.textTertiary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            LogosText { textFormat: Text.PlainText; text: "Import vCard"; color: Theme.palette.text; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
+            LogosText { textFormat: Text.PlainText; text: "Paste one or more vCard 4.0 entries (.vcf text) below."; color: Theme.palette.textTertiary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
             TextArea {
                 id: vcardInput
                 Layout.fillWidth: true; Layout.preferredHeight: 220
@@ -827,7 +827,7 @@ Item {
                 font.family: "monospace"; font.pixelSize: 12; color: Theme.palette.text
                 background: Rectangle { radius: Theme.spacing.radiusSmall; color: Theme.palette.background; border.width: 1; border.color: Theme.palette.borderHairline }
             }
-            LogosText { visible: root.importResult !== ""; text: root.importResult; color: Theme.palette.primary; font.pixelSize: 12 }
+            LogosText { textFormat: Text.PlainText; visible: root.importResult !== ""; text: root.importResult; color: Theme.palette.primary; font.pixelSize: 12 }
             RowLayout {
                 Layout.fillWidth: true; spacing: Theme.spacing.small
                 Item { Layout.fillWidth: true }
@@ -891,8 +891,8 @@ Item {
         onOpened: qrCanvas.requestPaint()
         ColumnLayout {
             anchors.fill: parent; spacing: Theme.spacing.small
-            LogosText { text: "Share this book"; color: Theme.palette.text; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
-            LogosText {
+            LogosText { textFormat: Text.PlainText; text: "Share this book"; color: Theme.palette.text; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
+            LogosText { textFormat: Text.PlainText;
                 text: "Anyone with this link can join and sync this book's contacts. Scan on the phone, or send the link over a trusted channel."
                 color: Theme.palette.textTertiary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true
             }
@@ -938,10 +938,10 @@ Item {
         onOpened: { joinLinkField.text = ""; root.joinResult = "" }
         ColumnLayout {
             anchors.fill: parent; spacing: Theme.spacing.small
-            LogosText { text: "Join a shared book"; color: Theme.palette.text; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
-            LogosText { text: "Paste a kith://join… link below."; color: Theme.palette.textTertiary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            LogosText { textFormat: Text.PlainText; text: "Join a shared book"; color: Theme.palette.text; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
+            LogosText { textFormat: Text.PlainText; text: "Paste a kith://join… link below."; color: Theme.palette.textTertiary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
             Field { id: joinLinkField; Layout.fillWidth: true; placeholderText: "kith://join?id=…&key=…&name=…" }
-            LogosText { visible: root.joinResult !== ""; text: root.joinResult; color: Theme.palette.primary; font.pixelSize: 12; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            LogosText { textFormat: Text.PlainText; visible: root.joinResult !== ""; text: root.joinResult; color: Theme.palette.primary; font.pixelSize: 12; wrapMode: Text.WordWrap; Layout.fillWidth: true }
             RowLayout {
                 Layout.fillWidth: true; spacing: Theme.spacing.small
                 Item { Layout.fillWidth: true }
@@ -981,7 +981,7 @@ Item {
         background: Rectangle { radius: Theme.spacing.radiusMedium; color: Theme.palette.backgroundElevated; border.width: 1; border.color: Theme.palette.borderHairline }
         ColumnLayout {
             anchors.fill: parent; spacing: Theme.spacing.small
-            LogosText { text: "Exported vCard"; color: Theme.palette.text; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
+            LogosText { textFormat: Text.PlainText; text: "Exported vCard"; color: Theme.palette.text; font.pixelSize: 18; font.weight: Theme.typography.weightMedium }
             TextArea {
                 id: vcardOutput
                 Layout.fillWidth: true; Layout.preferredHeight: 260
