@@ -2,16 +2,11 @@
   description = "Kith address-book UI — pure-QML view over the kith core module (kith ADR 0006).";
 
   inputs = {
-    # Pin to the SAME builder rev scala-ui/flake.lock resolves (verified via
-    # `nix flake metadata` on scala-ui: locked rev afe4430ee6eb7ba45c08a516a43e18500720c715,
-    # manifestVersion "0.3.0"), so the view builds against a known-installable SDK rev
-    # and Basecamp will install the .lgx. `kith.inputs.logos-module-builder.follows`
-    # cascades the SAME rev into the kith core (and, through it, loam_core) so view +
-    # core + identity dep share one SDK — avoids the cross-module IPC skew a mismatched
-    # builder rev can cause (kith ADR 0006: "same version-skew discipline as Scala").
-    logos-module-builder.url = "github:logos-co/logos-module-builder/afe4430ee6eb7ba45c08a516a43e18500720c715";
-    kith.url = "path:../";
-    kith.inputs.logos-module-builder.follows = "logos-module-builder";
+    # port/0.3: builder 0.3.1 — the same builder as the kith core and loam_core (one SDK).
+    logos-module-builder.url = "github:logos-co/logos-module-builder/0.3.1";
+    kith.url = "github:vpavlin/kith/ed776654c07eb7ddd9978398b2f551c5ba4a24d7";
+    # The view also calls loam_core directly (identities), so it declares it.
+    loam_core.url = "github:vpavlin/loam-basecamp/553253fee586baeb16d84c77e3f6da543ba7de9b?dir=core";
   };
 
   outputs = inputs@{ logos-module-builder, kith, ... }:
