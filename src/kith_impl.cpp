@@ -543,7 +543,7 @@ std::string KithImpl::addAuthorToContacts(const std::string& bookId, const std::
     std::string bid = bookId;
     if (bid.empty()) {
         for (const auto& b : m_store->books()) if (b.name == "Contacts") { bid = b.id; break; }
-        if (bid.empty()) bid = createBook("Contacts");
+        if (bid.empty()) bid = createBook("Contacts", "");
     }
     // Dedup: an address already present in this book is not re-added.
     {

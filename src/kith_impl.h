@@ -73,7 +73,7 @@ public:
     /// Create a new address book. identityId binds a specific loam_core identity as
     /// the book's authoring identity (kith ADR 0003); empty = the current default.
     /// Returns the book ID.
-    std::string createBook(const std::string& name, const std::string& identityId = "");
+    std::string createBook(const std::string& name, const std::string& identityId);
     /// List all books. Returns a JSON array string.
     std::string listBooks();
     /// Delete a book and all its contacts.
@@ -117,7 +117,7 @@ public:
     /// {"imported": n, "ids": [...]}
     std::string importVcard(const std::string& bookId, const std::string& vcardText);
     /// Export a book (or a single contact if contactId is set) as a vCard 4.0 blob.
-    std::string exportVcard(const std::string& bookId, const std::string& contactId = "");
+    std::string exportVcard(const std::string& bookId, const std::string& contactId);
 
     // -- Sync / share API (kith ADR 0004/0006, Phase 4) ----------------------------
     /// Current sync status for a book: "not_shared" | "syncing" | "offline".
@@ -130,7 +130,7 @@ public:
     /// Handle a kith://join link: upsert the book, bind the identity (identityId or
     /// the current default), start syncing and request catch-up. Returns false if
     /// the link doesn't parse.
-    bool handleShareLink(const std::string& link, const std::string& identityId = "");
+    bool handleShareLink(const std::string& link, const std::string& identityId);
     /// Encode text as a REAL QR code matrix (vendored qrcodegen, mirrors scala's
     /// qrMatrix). Returns JSON {"ok":true,"n":<size>,"cells":[0|1,...row-major]}
     /// for the view to draw on a Canvas (data: URIs are blocked in the sandbox).
