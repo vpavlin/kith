@@ -389,7 +389,9 @@ void KithImpl::onContextReady() {
     for (const auto& b : m_store->books())
         if (!b.key.empty()) m_sync->startSync(b.id, b.key);
 
-    m_sync->bootstrap();
+    // Logos 0.3.x rejects calls a module makes while it is still loading ("auth token not
+    // recognized"), so module calls start once loading has finished (cf. scala startModules()).
+    QTimer::singleShot(1000, [this] { m_sync->bootstrap(); });
 
     // Catch-up retry: start() finishes BEFORE the gossip mesh has peers (~10s to
     // form) and before the async subscribe/channel-join land, so a single SYNC_REQ
