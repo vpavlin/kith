@@ -1,10 +1,29 @@
-<title>Kith</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kith: a local-first contacts app for Android + Basecamp</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Kith — your people, kept close. A local-first, peer-to-peer address book on Loam, where a contact can carry a verifiable identity across every app.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<meta name="description" content="Kith is a local-first contacts app for Android and Logos Basecamp (desktop). Your address book lives on your own devices and syncs peer to peer over Loam, with no server. Early preview.">
+<link rel="canonical" href="https://kith.vpavlin.xyz/">
+<link rel="icon" type="image/png" href="icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Kith: local-first contacts for Android + Basecamp">
+<meta property="og:description" content="An address book that lives on your own devices and syncs peer to peer over Loam. No server. Early preview.">
+<meta property="og:url" content="https://kith.vpavlin.xyz/">
+<meta property="og:image" content="https://kith.vpavlin.xyz/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#6B4E2E">
 <style>
+  /* Fonts are self-hosted (assets/fonts, SIL OFL 1.1): no request leaves for a third party. */
+  @font-face{font-family:"EB Garamond";font-style:normal;font-weight:400 600;font-display:swap;src:url(assets/fonts/EBGaramond-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+  @font-face{font-family:"EB Garamond";font-style:normal;font-weight:400 600;font-display:swap;src:url(assets/fonts/EBGaramond-latin-ext.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+  @font-face{font-family:"EB Garamond";font-style:italic;font-weight:400;font-display:swap;src:url(assets/fonts/EBGaramond-italic-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+  @font-face{font-family:"EB Garamond";font-style:italic;font-weight:400;font-display:swap;src:url(assets/fonts/EBGaramond-italic-latin-ext.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+  @font-face{font-family:"UnifrakturMaguntia";font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/UnifrakturMaguntia-latin.woff2) format("woff2")}
+
   :root{
     --parchment:#EFE6D2; --panel:#F3ECDC; --panel-2:#E7DBC0;
     --ink:#2A2118; --ink-soft:#5B4C39;
@@ -19,22 +38,17 @@
     --rule:rgba(235,222,194,.16); --rule-soft:rgba(235,222,194,.08);
     --shadow:rgba(0,0,0,.5); --grain:rgba(235,222,194,.03);
   }}
-  :root[data-theme="dark"]{
-    --parchment:#1B1509; --panel:#241C11; --panel-2:#2C2213;
-    --ink:#EBDEC2; --ink-soft:#B7A582;
-    --umber:#CB9E60; --sprout:#95B56C; --gilt:#D9AC3E; --rubric:#CE5C4C;
-    --rule:rgba(235,222,194,.16); --rule-soft:rgba(235,222,194,.08);
-    --shadow:rgba(0,0,0,.5); --grain:rgba(235,222,194,.03);
-  }
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%; scroll-behavior:smooth}
   body{margin:0; background:var(--parchment); color:var(--ink);
     font-family:"EB Garamond",Georgia,serif; font-size:19px; line-height:1.62;
     background-image:radial-gradient(1200px 600px at 12% -8%,var(--grain),transparent 60%),radial-gradient(1000px 520px at 100% 4%,var(--grain),transparent 55%);}
-  .wrap{max-width:920px; margin:0 auto; padding:0 26px}
+  .wrap{max-width:960px; margin:0 auto; padding:0 26px}
   h1,h2,h3{text-wrap:balance; margin:0}
   a{color:var(--sprout); text-underline-offset:3px}
-  .eyebrow{font-variant:small-caps; letter-spacing:.2em; font-size:.8rem; color:var(--rubric); font-weight:600}
+  code,.mono{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.8em}
+  code{background:color-mix(in srgb,var(--umber) 13%,transparent); padding:2px 6px; border-radius:5px; overflow-wrap:anywhere}
+  .eyebrow{font-variant:small-caps; letter-spacing:.2em; font-size:.8rem; color:var(--rubric); font-weight:600; margin:0}
   .muted{color:var(--ink-soft)}
 
   /* mark */
@@ -42,52 +56,114 @@
     display:grid; place-items:center; background:linear-gradient(160deg,color-mix(in srgb,var(--umber) 78%,#000 4%),var(--umber));
     box-shadow:0 6px 22px var(--shadow),inset 0 0 0 1.5px rgba(255,240,205,.14); overflow:hidden}
   .emblem::before{content:""; position:absolute; inset:9%; border:1.5px solid rgba(240,225,190,.45); border-radius:16%}
-  .emblem .k{display:block; position:relative; z-index:2}  /* the K is now a bbox-centered SVG path (matches the app icon) */
+  .emblem .k{display:block; position:relative; z-index:2}
 
   /* hero */
-  header{padding:72px 0 26px}
+  header{padding:64px 0 10px}
   .hero{display:flex; gap:32px; align-items:center; flex-wrap:wrap}
-  .wordmark{font-family:"UnifrakturMaguntia",serif; font-size:clamp(72px,14vw,128px); line-height:.9; margin:0; color:var(--ink)}
+  .wordmark{font-family:"UnifrakturMaguntia",serif; font-size:clamp(72px,14vw,128px); line-height:.9; margin:4px 0 0; color:var(--ink); font-weight:400}
   .oe{font-family:"UnifrakturMaguntia",serif; font-size:1.7rem; color:var(--umber); margin:.35rem 0 .1rem}
   .oe .et{color:var(--rubric)}
-  .tag{font-size:1.35rem; color:var(--ink-soft); font-style:italic; margin:.35rem 0 0; max-width:32ch}
-  .cta-row{display:flex; gap:12px; flex-wrap:wrap; margin-top:28px}
+  .tag{font-size:1.35rem; color:var(--ink-soft); font-style:italic; margin:.2rem 0 0}
+  .pitch{font-size:1.5rem; line-height:1.35; margin:30px 0 0; font-weight:500}
+  .pitch-sub{font-size:1.12rem; color:var(--ink-soft); margin:10px 0 0; max-width:60ch}
+  .pill{display:inline-block; font-variant:small-caps; letter-spacing:.08em; font-size:.85rem; font-weight:600; color:var(--rubric); border:1px solid color-mix(in srgb,var(--rubric) 45%,transparent); border-radius:999px; padding:1px 11px; vertical-align:middle; margin-left:6px}
+  .cta-row{display:flex; gap:12px; flex-wrap:wrap; margin-top:24px}
   .btn{display:inline-flex; align-items:center; gap:8px; padding:11px 20px; border-radius:9px; text-decoration:none; font-variant:small-caps; letter-spacing:.05em; font-weight:600; font-size:1.02rem}
-  .btn.primary{background:var(--umber); color:#F1E7CE; box-shadow:0 3px 12px var(--shadow)}
+  .btn.primary{background:var(--umber); color:var(--parchment); box-shadow:0 3px 12px var(--shadow)}
   .btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--rule)}
-  .double-rule{border-top:2px solid var(--rule); border-bottom:1px solid var(--rule-soft); height:5px; margin:46px 0}
+  .double-rule{border-top:2px solid var(--rule); border-bottom:1px solid var(--rule-soft); height:5px; margin:42px 0}
 
   section{padding:20px 0}
-  .lead{font-size:1.32rem; max-width:60ch}
+  .lead{font-size:1.22rem; max-width:62ch}
   .dropcap::first-letter{font-family:"UnifrakturMaguntia",serif; float:left; font-size:4rem; line-height:.7; padding:5px 12px 0 0; color:var(--gilt)}
   .pull{border-left:2px solid var(--rubric); padding-left:18px; margin:26px 0; font-style:italic; color:var(--ink-soft)}
   .pull .oe-line{font-style:normal; color:var(--umber); font-size:1.12rem}
 
-  .sec-head{display:flex; align-items:baseline; gap:14px; margin:8px 0 20px}
+  .sec-head{display:flex; align-items:baseline; gap:14px; margin:8px 0 18px}
   .sec-head h2{font-family:"EB Garamond",serif; font-weight:600; font-size:1.55rem}
-  .sec-head .n{font-family:"UnifrakturMaguntia",serif; color:var(--gilt); font-size:1.7rem; line-height:1}
+  .sec-head .n{font-family:"UnifrakturMaguntia",serif; color:var(--gilt); font-size:1.7rem; line-height:1; min-width:1.4em}
 
   .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:16px}
-  @media(max-width:620px){.grid{grid-template-columns:1fr}}
-  .card{background:var(--panel); border:1px solid var(--rule); border-radius:13px; padding:22px 24px}
-  .card h3{font-size:1.18rem; font-weight:600; margin-bottom:6px}
-  .card h3 .rune{color:var(--rubric); font-variant:small-caps; letter-spacing:.06em; margin-right:.4em}
+  .card{background:var(--panel); border:1px solid var(--rule); border-radius:13px; padding:20px 22px}
+  .card h3{font-size:1.15rem; font-weight:600; margin-bottom:6px}
+  .card h3 .rune{color:var(--rubric); font-variant:small-caps; letter-spacing:.06em}
   .card p{margin:0; color:var(--ink-soft); font-size:1.02rem}
 
+  /* screens */
+  .shots{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,2fr); gap:16px; align-items:start}
+  .shots figure{margin:0; background:var(--panel); border:1px solid var(--rule); border-radius:13px; padding:10px}
+  .shots img{display:block; width:100%; height:auto; border-radius:8px}
+  .shots figcaption{font-size:.92rem; color:var(--ink-soft); font-style:italic; padding:8px 4px 2px}
+
+  /* key-in-a-contact */
+  .ways{counter-reset:w; list-style:none; padding:0; margin:0; display:grid; gap:12px}
+  .ways li{background:var(--panel); border:1px solid var(--rule); border-radius:13px; padding:16px 20px 16px 62px; position:relative; color:var(--ink-soft); font-size:1.02rem}
+  .ways li::before{counter-increment:w; content:counter(w); position:absolute; left:20px; top:13px; font-family:"UnifrakturMaguntia",serif; color:var(--gilt); font-size:1.5rem}
+  .ways li strong{color:var(--ink)}
+  .ways .when{display:inline-block; font-variant:small-caps; letter-spacing:.06em; font-size:.88rem; font-weight:600; margin-left:4px}
+  .ways .now{color:var(--sprout)} .ways .later{color:var(--rubric)}
+
+  /* privacy */
+  .facts{margin:0; padding:0; list-style:none; display:grid; gap:10px; max-width:70ch}
+  .facts li{padding-left:28px; position:relative}
+  .facts li::before{content:"❧"; position:absolute; left:0; top:0; color:var(--gilt)}
+  .warn{background:color-mix(in srgb,var(--rubric) 9%,var(--panel)); border:1px solid color-mix(in srgb,var(--rubric) 40%,transparent); border-radius:13px; padding:16px 20px; margin:0 0 18px; max-width:70ch}
+  .warn strong{color:var(--rubric)}
+
+  /* install */
   .install{display:grid; grid-template-columns:1fr 1fr; gap:16px}
-  @media(max-width:620px){.install{grid-template-columns:1fr}}
-  .inst{background:var(--panel); border:1px solid var(--rule); border-radius:13px; padding:22px 24px}
-  .inst .k{font-variant:small-caps; letter-spacing:.08em; color:var(--rubric); font-weight:600; font-size:.9rem}
+  .inst{background:var(--panel); border:1px solid var(--rule); border-radius:13px; padding:22px 24px; min-width:0}
+  .inst .k{font-variant:small-caps; letter-spacing:.08em; color:var(--rubric); font-weight:600; font-size:.9rem; margin:0}
   .inst h3{font-size:1.2rem; margin:4px 0 8px}
-  .inst code{font-family:ui-monospace,Menlo,monospace; font-size:.82rem; background:color-mix(in srgb,var(--umber) 13%,transparent); padding:2px 6px; border-radius:5px; word-break:break-all}
-  .inst ol{margin:8px 0 0; padding-left:20px; color:var(--ink-soft); font-size:1rem}
+  .inst ol{margin:8px 0 0; padding-left:22px; color:var(--ink-soft); font-size:1rem}
+  .inst ol li{margin:0 0 8px}
+  .inst ol li strong{color:var(--ink)}
+  .inst .note{font-size:.95rem; color:var(--ink-soft); margin:12px 0 0; font-style:italic}
+  .qr-row{display:flex; gap:16px; align-items:center; margin:12px 0 4px}
+  .qr-row img{width:132px; height:132px; border-radius:8px; border:1px solid var(--rule); flex:0 0 auto; background:#F3ECDC}
+  .qr-row p{margin:0; font-size:.92rem; color:var(--ink-soft)}
+  .fp{display:block; margin-top:4px; font-size:.74rem; line-height:1.45; letter-spacing:.02em}
 
-  footer{padding:40px 0 60px; color:var(--ink-soft); font-size:.98rem}
-  .colophon{font-style:italic; border-top:1px solid var(--rule); padding-top:16px; margin-top:22px; max-width:62ch}
+  /* status */
+  .status{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  .status ul{margin:0; padding-left:20px; color:var(--ink-soft); font-size:1rem}
+  .status li{margin:0 0 7px}
+  .status h3{font-size:1.1rem; margin-bottom:8px}
+  .versions{font-size:.92rem; color:var(--ink-soft); margin:14px 0 0}
+
+  footer{padding:30px 0 60px; color:var(--ink-soft); font-size:.98rem}
+  .colophon{font-style:italic; border-top:1px solid var(--rule); padding-top:16px; margin-top:22px; max-width:66ch}
   .colophon .rw{color:var(--rubric); font-variant:small-caps; letter-spacing:.04em; font-style:normal}
-  .links{display:flex; gap:18px; flex-wrap:wrap; margin-top:10px; font-variant:small-caps; letter-spacing:.05em}
-</style>
+  .links{display:flex; gap:8px 18px; flex-wrap:wrap; margin-top:10px; font-variant:small-caps; letter-spacing:.05em}
+  .links .lbl{color:var(--ink-soft); font-variant:normal; letter-spacing:0; font-style:italic}
 
+  @media(max-width:760px){
+    .shots{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .shots figure.wide{grid-column:1/-1}
+  }
+  @media(max-width:620px){
+    body{font-size:18px}
+    header{padding-top:40px}
+    .emblem{--sz:96px}
+    .hero{gap:20px}
+    .grid,.install,.status{grid-template-columns:1fr}
+    .shots{grid-template-columns:1fr 1fr}
+    .pitch{font-size:1.32rem}
+    .ways li{padding-left:52px}
+    .ways li::before{left:16px}
+    .qr-row img{width:112px; height:112px}
+  }
+</style>
+<script>
+  // Hide the screenshot section entirely if none of the images exist yet.
+  window.kithShots = function () {
+    var s = document.getElementById('screens');
+    if (s && !s.querySelector('figure')) s.remove();
+  };
+</script>
+</head>
+<body>
 <div class="wrap">
   <header>
     <div class="hero">
@@ -99,62 +175,147 @@
         <p class="tag">Your people, kept close.</p>
       </div>
     </div>
+    <p class="pitch">Local-first contacts app for Android + Basecamp. <span class="pill">early preview</span></p>
+    <p class="pitch-sub">Your address book lives on your own phone and desktop and syncs between them peer to peer, sealed with a key only the book's members hold. There is no Kith server.</p>
     <div class="cta-row">
       <a class="btn primary" href="#install">Install →</a>
-      <a class="btn ghost" href="https://github.com/vpavlin/kith">GitHub</a>
+      <a class="btn ghost" href="#privacy">Privacy model</a>
+      <a class="btn ghost" href="https://github.com/vpavlin/kith">Source</a>
     </div>
     <div class="double-rule"></div>
   </header>
 
+  <main>
   <section>
-    <p class="lead dropcap">Kin is the family you are born to; <em>kith</em> — an old word, worn smooth by centuries — is the people you come to know: your neighbours, your fellows, your circle. Kith the app is your address book, held on your own devices and shared, when you choose, with none but those you name.</p>
+    <p class="lead dropcap">Kin is the family you are born to; <em>kith</em>, an old word worn smooth by centuries, is the people you come to know: your neighbours, your fellows, your circle. Kith the app is your address book, held on your own devices and shared only with the people you give the link to.</p>
     <p class="pull"><span class="oe-line">Ne biþ nān man frēondlēas þe gōde cȳþþe hæfþ.</span><br>“No one is friendless who has good kith.”</p>
   </section>
 
-  <section>
-    <div class="sec-head"><span class="n">I</span><h2>A contact that means something</h2></div>
-    <p class="lead">Most address books hold a name and a number. In Kith, a contact can also carry a <strong>Loam identity</strong> — a verifiable key. That one field turns a person into someone you can <em>grant</em>: an editor on a shared <a href="https://github.com/vpavlin/scala">Scala</a> calendar, an admin in a <a href="https://github.com/vpavlin/qaku">Qaku</a> room. The same person, proven, across every app in the ecosystem — because the address that signs their events is the address you keep.</p>
+  <section id="screens" aria-label="Screenshots">
+    <div class="sec-head"><span class="n">❦</span><h2>A look inside</h2></div>
+    <div class="shots">
+      <figure><img src="assets/screens/list.png" alt="Kith on Android: the address book list" onerror="this.closest('figure').remove();window.kithShots&amp;&amp;kithShots()"><figcaption>The book</figcaption></figure>
+      <figure><img src="assets/screens/contact.png" alt="Kith on Android: a contact's details" onerror="this.closest('figure').remove();window.kithShots&amp;&amp;kithShots()"><figcaption>A contact</figcaption></figure>
+      <figure><img src="assets/screens/share.png" alt="Kith on Android: sharing a book with a QR code and link" onerror="this.closest('figure').remove();window.kithShots&amp;&amp;kithShots()"><figcaption>Sharing a book</figcaption></figure>
+      <figure class="wide"><img src="assets/screens/desktop.png" alt="Kith in Logos Basecamp on the desktop" onerror="this.closest('figure').remove();window.kithShots&amp;&amp;kithShots()"><figcaption>Kith in Basecamp</figcaption></figure>
+    </div>
   </section>
 
   <section>
-    <div class="sec-head"><span class="n">II</span><h2>What it does</h2></div>
+    <div class="sec-head"><span class="n">I</span><h2>What it does</h2></div>
     <div class="grid">
-      <div class="card"><h3><span class="rune">Local-first</span></h3><p>Your book lives on your devices, encrypted on the wire. No server holds your contacts — privacy is who has the key, not who you trust to keep it.</p></div>
-      <div class="card"><h3><span class="rune">Syncs, p2p</span></h3><p>Share a book with a <code>kith://join</code> link — or scan its QR — and contacts converge across your phone and desktop over Loam's peer-to-peer transport. Edit offline; it reconciles.</p></div>
-      <div class="card"><h3><span class="rune">vCard</span></h3><p>Bring your existing contacts in, take them out. Standard vCard import/export, with the Loam key carried along as an extension — friendly to the rest of the world.</p></div>
-      <div class="card"><h3><span class="rune">Phone &amp; desk</span></h3><p>A Basecamp module on the desktop and an Android app, folding the very same records byte-for-byte — one book, everywhere you are.</p></div>
+      <div class="card"><h3><span class="rune">Books of contacts</span></h3><p>Keep one or more address books. A contact holds a name, phones, emails, messaging handles (Signal, Telegram, Matrix…), addresses and notes. Search across them. Add, edit and delete offline; changes merge when your devices meet.</p></div>
+      <div class="card"><h3><span class="rune">Share a book</span></h3><p>Every book has a <code>kith://join</code> link and a QR code. Open the link or scan the QR on another device and the book syncs there too: your phone and desktop, or a household's shared list.</p></div>
+      <div class="card"><h3><span class="rune">vCard in and out</span></h3><p>Paste vCards to import your existing contacts, and export one contact or a whole book. A contact's Loam key travels in an <code>X-LOAM-KEY</code> field. Support is basic for now: paste/copy text, no photos.</p></div>
+      <div class="card"><h3><span class="rune">Phone &amp; desktop</span></h3><p>An Android app and a Basecamp module that fold the same signed events the same way, so a book reads identically on both. Each edit is signed, so you can see which device or identity wrote it.</p></div>
     </div>
+  </section>
+
+  <section id="loam-key">
+    <div class="sec-head"><span class="n">II</span><h2>A contact can carry a Loam key</h2></div>
+    <p class="lead">Besides a name and a number, a contact can hold a <strong>Loam identity</strong>: the public key and address that sign that person's writes in Loam apps. Today that is a verifiable note on the contact. Later it should let other apps use Kith as a picker, for example to make someone an editor of a <a href="https://vpavlin.github.io/scala/">Scala</a> calendar or an admin of a <a href="https://vpavlin.github.io/qaku-logos/">QAKU</a> room. That integration is <strong>planned</strong> and not built yet.</p>
+    <p class="muted" style="margin:18px 0 12px">How to get someone's key into a contact today:</p>
+    <ol class="ways">
+      <li><strong>Import their vCard.</strong> If it has an <code>X-LOAM-KEY</code> line (for example a contact exported from someone else's Kith), the key comes in with it. <span class="when now">Android + desktop</span></li>
+      <li><strong>Type or paste it in.</strong> In the desktop contact editor, switch on the Loam identity and fill in the address and public key. On Android the field is read-only for now. <span class="when now">desktop</span></li>
+      <li><strong>“Add author to contacts”.</strong> The desktop core has the call that turns the author of an event (say, in a shared calendar) into a contact, but no app has a button for it yet. <span class="when later">planned</span></li>
+      <li><strong>Scan their key as a QR code.</strong> The QR scanner only joins books for now. <span class="when later">not yet</span></li>
+    </ol>
+    <p class="muted" style="margin-top:14px">A key that arrives any of these ways is marked <em>unverified</em>. Check it with the person some other way; on the desktop you can then tick “verified”.</p>
+  </section>
+
+  <section id="privacy">
+    <div class="sec-head"><span class="n">III</span><h2>How it works &amp; who can see what</h2></div>
+    <div class="warn"><strong>The join link is the key.</strong> Anyone who has a book's <code>kith://join</code> link (or its QR code) can read <em>and</em> change every contact in it. There is no way to remove someone yet. To cut someone off, make a new book and share it only with the people who should keep it. Send links only over a channel you trust.</div>
+    <ul class="facts">
+      <li><strong>Your devices hold the data.</strong> Contacts live in local storage on your phone and in Basecamp on your desktop. There is no Kith server and no account.</li>
+      <li><strong>Sealed before it leaves.</strong> Every edit is encrypted (AES-256-GCM) with the book's own random key before it is sent. The key travels only inside the join link.</li>
+      <li><strong>Signed by its author.</strong> Edits are signed with secp256k1: on the desktop with your loam_core identity, on the phone with a per-device key kept in Android's secure storage.</li>
+      <li><strong>What the network sees.</strong> Edits travel over the Logos Delivery (Waku) network. Relays and store nodes see ciphertext on a per-book topic, plus its timing and size, but not your contacts. Store nodes may keep that ciphertext for a while.</li>
+      <li><strong>How devices catch up.</strong> When devices of the same book are online together they compare what they have and send each other what's missing. Edits made offline go out the next time they meet.</li>
+      <li><strong>Loam recommended, not required.</strong> On Android, <a href="https://vpavlin.github.io/loam/">Loam</a> runs one shared node for all your Logos apps, with Bluetooth as an experimental, Android-only option. Without Loam, Kith starts its own node. On the desktop, Kith uses <code>loam_core</code>, which Basecamp installs for you.</li>
+    </ul>
   </section>
 
   <section id="install">
-    <div class="sec-head"><span class="n">III</span><h2>Get Kith</h2></div>
+    <div class="sec-head"><span class="n">IV</span><h2>Get Kith</h2></div>
     <div class="install">
       <div class="inst">
-        <p class="k">Desktop · Logos Basecamp</p>
-        <h3>Add the module</h3>
-        <p class="muted" style="font-size:1rem">Install <strong>Kith</strong> + <strong>Kith UI</strong> from the Basecamp package repo:</p>
-        <p style="margin:8px 0 0"><code>apps.vpavlin.xyz</code></p>
+        <p class="k">Android · F-Droid</p>
+        <h3>Add the repo, install Kith</h3>
+        <div class="qr-row">
+          <img src="assets/fdroid-qr.svg" alt="QR code of the F-Droid add-repo link">
+          <p>Scan with the phone, or open the link on it:<br><a href="https://apps.vpavlin.xyz/fdroid/repo?fingerprint=2373710A76ACB09F287F053E99E533F9D3685529C44E9027CDBC79B1DC0C9105">apps.vpavlin.xyz/fdroid/repo</a></p>
+        </div>
+        <ol>
+          <li>Install <a href="https://f-droid.org/">F-Droid</a> if you don't have it.</li>
+          <li>Add the repo with the QR or link above. Check that the fingerprint matches:<code class="fp">2373710A76ACB09F287F053E99E533F9D3685529C44E9027CDBC79B1DC0C9105</code></li>
+          <li>Search for <strong>Kith</strong> and install it.</li>
+          <li><strong>Recommended:</strong> also install <strong>Loam</strong> from the same repo, so all your Logos apps share one node. Without it, Kith runs its own.</li>
+          <li>Create a book, or tap join and paste or scan a <code>kith://join</code> link.</li>
+        </ol>
+        <p class="note">64-bit ARM (arm64) phones only.</p>
       </div>
       <div class="inst">
-        <p class="k">Android · F-Droid</p>
-        <h3>Add the repo, install</h3>
+        <p class="k">Desktop · Logos Basecamp 0.2.x</p>
+        <h3>Add the repo, install Kith</h3>
         <ol>
-          <li>Add the F-Droid repo <code>apps.vpavlin.xyz/fdroid/repo</code></li>
-          <li>Search <strong>Kith</strong> → install</li>
-          <li>Run the <strong>Loam</strong> app so Kith has a node</li>
+          <li>Open Basecamp's package manager and add this package repository:<br><code>https://apps.vpavlin.xyz/logos-repo.json</code></li>
+          <li>Install <strong>Kith</strong> (package <code>kith_ui</code>). It pulls in the <code>kith</code> core and <code>loam_core</code> automatically.</li>
+          <li>Open Kith, create a book and choose which identity signs it.</li>
+          <li>To use the same book on your phone, open its share view and scan the QR code with Kith on Android.</li>
         </ol>
+        <p class="note">Supported: Basecamp 0.2.x. Basecamp 0.3 support is coming.</p>
       </div>
     </div>
   </section>
+
+  <section id="status">
+    <div class="sec-head"><span class="n">V</span><h2>Status &amp; limitations</h2></div>
+    <p class="lead" style="margin-top:0">Kith is an <strong>early preview</strong>. The basics work on both platforms, but it hasn't had much use yet. Don't make it the only copy of contacts you can't lose; export a vCard now and then.</p>
+    <div class="status">
+      <div class="card">
+        <h3>Not there yet</h3>
+        <ul>
+          <li>Removing a member or rotating a book's key: no revocation yet.</li>
+          <li>Keycard signing: edits are signed with a device or loam_core key, not on a Keycard yet.</li>
+          <li>Scala / QAKU integration (pick a contact, “add author”): planned.</li>
+          <li>Device pairing that doesn't hand over the whole book key: designed, not built.</li>
+          <li>vCard is basic: no photos, no line folding, paste/copy only.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Good to know</h3>
+        <ul>
+          <li>Android: arm64 only. Loam recommended; Bluetooth via Loam is experimental and Android-only.</li>
+          <li>Desktop: Basecamp 0.2.x. Basecamp 0.3 support is coming.</li>
+          <li>Sync is peer to peer: a device catches up when another device of the book is online.</li>
+          <li>Design notes and plans are in the <a href="https://github.com/vpavlin/kith/tree/main/docs/adr">ADRs</a>.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="versions">Current public builds: Android 0.1.5 · Basecamp <code>kith_ui</code> 0.2.5 + <code>kith</code> 0.2.4. Install the latest from the repos above.</p>
+  </section>
+  </main>
 
   <div class="double-rule"></div>
   <footer>
     <div class="links">
       <a href="https://github.com/vpavlin/kith">Source</a>
       <a href="https://github.com/vpavlin/kith/tree/main/docs/adr">Design (ADRs)</a>
-      <a href="https://github.com/vpavlin/loam-basecamp">Loam</a>
-      <a href="https://github.com/vpavlin/scala">Scala</a>
+      <a href="https://apps.vpavlin.xyz/">apps.vpavlin.xyz</a>
     </div>
-    <p class="colophon"><span class="rw">Colophon.</span> Kith is writ in Unifraktur &amp; Garamond upon a ground of parchment &amp; soil, sibling to Scala, KYM &amp; Qaku, and built on Loam. Free software; your people are your own.</p>
+    <div class="links">
+      <span class="lbl">Siblings:</span>
+      <a href="https://vpavlin.github.io/scala/">Scala</a>
+      <a href="https://vpavlin.github.io/qaku-logos/">QAKU</a>
+      <a href="https://github.com/vpavlin/kym">KYM</a>
+      <a href="https://vpavlin.github.io/perun/">Perun</a>
+      <a href="https://vpavlin.github.io/loam/">Loam</a>
+    </div>
+    <p>Part of a family of local-first apps on Logos → <a href="https://apps.vpavlin.xyz/">apps.vpavlin.xyz</a></p>
+    <p class="colophon"><span class="rw">Colophon.</span> Kith is set in Unifraktur Maguntia &amp; EB Garamond (both SIL Open Font License, served from this site) upon a ground of parchment &amp; soil. It is sibling to Scala, QAKU, KYM &amp; Perun, and built on Loam. Your people are your own.</p>
   </footer>
 </div>
+</body>
+</html>
