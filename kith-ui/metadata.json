@@ -2,14 +2,14 @@
   "name": "kith_ui",
   "display_name": "Kith",
   "icon": "icon.png",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "type": "ui_qml",
-  "interface": "universal",
   "category": "general",
   "description": "Kith address book UI - pure-QML view over the kith core module",
   "view": "qml/Main.qml",
   "dependencies": [
-    "kith"
+    "kith",
+    "loam_core"
   ],
   "nix": {
     "packages": {
