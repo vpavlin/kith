@@ -2,7 +2,7 @@
   "name": "kith",
   "display_name": "Kith Core",
   "icon": "icon.png",
-  "version": "0.3.1",
+  "version": "0.3.3",
   "type": "core",
   "category": "general",
   "description": "Contacts and address book module for Logos Core",

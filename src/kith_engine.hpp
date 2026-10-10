@@ -15,6 +15,7 @@
 #include <map>
 #include <set>
 #include <nlohmann/json.hpp>
+#include "kith_json.hpp"
 
 #include "logos_sync/event.hpp"
 #include "logos_sync/merge.hpp"   // mergeEvents - union-by-id + HLC sort
@@ -68,17 +69,19 @@ inline json foldBook(const std::string& bookId, const std::vector<Event>& log) {
         // (kith_identity.hpp) must actually sign every event kith_impl authors -
         // see KithImpl::mkEvent.
         if (!isSigned(e) || !verifyEvent(e)) continue;
+        // Other members wrote these: a payload that isn't an object, or an id that isn't a string, is
+        // skipped (json::value() would throw and take the whole module down). Mirrored in engine.ts.
+        const std::string id = (e.payload.is_object() && e.payload.contains("id") && e.payload["id"].is_string())
+                                   ? e.payload["id"].get<std::string>() : std::string();
         if (e.type == ET::CONTACT_SET) {
-            std::string id = e.payload.value("id", std::string());
             if (id.empty() || tombstones.count(id)) continue;   // tombstone terminal
             json c = e.payload;
             bool creating = !contacts.count(id);
-            c["createdAt"] = creating ? e.hlc.wall : contacts[id].value("createdAt", e.hlc.wall);
+            c["createdAt"] = creating ? json(e.hlc.wall) : contacts[id]["createdAt"];   // always set by us, a number
             c["updatedAt"] = e.hlc.wall;
             c["authorAddr"] = !e.hlc.dev.empty() ? e.hlc.dev : e.dev;
             contacts[id] = std::move(c);
         } else if (e.type == ET::CONTACT_DEL) {
-            std::string id = e.payload.value("id", std::string());
             if (id.empty()) continue;
             tombstones.insert(id);
             contacts.erase(id);
