@@ -69,6 +69,7 @@ app**, both over logos-sync + loam-transport.
 **Built and shipping:** the Basecamp desktop core `kith` + view `kith_ui` (0.2.2) and the Android
 app (`mobile/`, 0.1.2) sync signed, sealed contact books over Loam; design decisions live in the
 ADRs under [`docs/adr/`](docs/adr) (framing: [`0001`](docs/adr/0001-kith-is-a-loam-ecosystem-app.md)).
+A 5-minute demo script is in [`docs/demo.md`](docs/demo.md).
 
 ## The ADRs
 
