@@ -78,6 +78,11 @@ function adapterReceive(topic: string, candidates: Uint8Array[]): boolean {
 
 /** Bring the node up on every shared book's topic. Idempotent. Call after the
  *  book list (with keys) is known; use joinBook() for later adds. */
+// The app id this engine registers with the shared Loam node. Another app that embeds Kith's engine
+// (kith-sdk) calls setAppId with its own id before startSync, so Loam shows and approves that app.
+let appId = "kith";
+export function setAppId(id: string): void { if (id) appId = id; }
+
 export async function startSync(opts: {
   deviceId: string;
   books: { id: string; encryptionKey: string }[];
@@ -90,7 +95,7 @@ export async function startSync(opts: {
     .filter((b) => b.encryptionKey)
     .map((b) => ({ bookId: b.id, encryptionKey: b.encryptionKey, topic: topicForBook(b.id) }));
   (transport as { preferServiceBackend?: (on: boolean, appId: string) => void })
-    .preferServiceBackend?.(!!opts.shared, "kith");
+    .preferServiceBackend?.(!!opts.shared, appId);
   if (transport.getCtx()) {
     // already up — just join any new topics
     await transport.join(routes.map((r) => r.topic));

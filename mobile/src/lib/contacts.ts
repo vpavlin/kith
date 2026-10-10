@@ -300,3 +300,6 @@ function notifyChange() {
 export function foldBookNow(bookId: string, log: Event[]) {
   return foldBook(bookId, log);
 }
+
+// For apps that embed this engine (kith-sdk): register with Loam under your own app id. Call before startSyncing.
+export const setAppId = sync.setAppId;
