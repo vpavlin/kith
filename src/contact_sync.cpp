@@ -1,3 +1,4 @@
+#include "kith_json.hpp"
 #include "contact_sync.h"
 #include "logos_transport.hpp"
 
@@ -51,7 +52,7 @@ void ContactSync::sendEvent(const std::string &bookId, const std::string &eventJ
     // Fallback to a random token if a frame ever arrives without an id.
     std::string sealId;
     auto j = nlohmann::json::parse(eventJson, nullptr, false);
-    if (j.is_object()) sealId = j.value("id", std::string());
+    if (j.is_object()) sealId = kith::sv(j, "id");
     if (sealId.empty()) {
         unsigned char rnd[16];
         RAND_bytes(rnd, 16);

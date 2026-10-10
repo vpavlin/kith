@@ -1,4 +1,5 @@
 #include <set>
+#include "kith_json.hpp"
 #include "contact_store.h"
 
 #include <fstream>
@@ -79,9 +80,9 @@ std::vector<kith::BookReg> ContactStore::books() const {
     std::set<std::string> seen;
     for (auto& j : arr) {
         if (!j.is_object() || !j.contains("id")) continue;
-        std::string id = j.value("id", std::string());
+        std::string id = kith::sv(j, "id");
         if (id.empty() || !seen.insert(id).second) continue;
-        out.push_back({ id, j.value("key", std::string()), j.value("name", std::string()) });
+        out.push_back({ id, kith::sv(j, "key"), kith::sv(j, "name") });
     }
     return out;
 }

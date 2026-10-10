@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <cctype>
 #include <nlohmann/json.hpp>
+#include "kith_json.hpp"
 
 namespace kith {
 namespace vcard {
@@ -201,30 +202,30 @@ inline std::string exportOne(const json& c) {
     std::ostringstream o;
     o << "BEGIN:VCARD\r\n" << "VERSION:4.0\r\n";
     json name = c.value("name", json::object());
-    std::string display = name.is_object() ? name.value("display", std::string()) : std::string();
-    if (display.empty()) display = c.value("id", std::string());
+    std::string display = name.is_object() ? kith::sv(name, "display") : std::string();
+    if (display.empty()) display = kith::sv(c, "id");
     o << "FN:" << escape(display) << "\r\n";
-    std::string family = name.is_object() ? name.value("family", std::string()) : std::string();
-    std::string given  = name.is_object() ? name.value("given", std::string())  : std::string();
+    std::string family = name.is_object() ? kith::sv(name, "family") : std::string();
+    std::string given  = name.is_object() ? kith::sv(name, "given")  : std::string();
     if (!family.empty() || !given.empty())
         o << "N:" << escape(family) << ";" << escape(given) << ";;;\r\n";
     if (name.is_object() && name.contains("org") && name["org"].is_string())
         o << "ORG:" << escape(name["org"].get<std::string>()) << "\r\n";
     if (c.contains("phones") && c["phones"].is_array())
         for (auto& p : c["phones"])
-            o << "TEL;TYPE=" << p.value("label", std::string("other")) << ":" << escape(p.value("value", std::string())) << "\r\n";
+            o << "TEL;TYPE=" << kith::sv(p, "label", "other") << ":" << escape(kith::sv(p, "value")) << "\r\n";
     if (c.contains("emails") && c["emails"].is_array())
         for (auto& e : c["emails"])
-            o << "EMAIL;TYPE=" << e.value("label", std::string("other")) << ":" << escape(e.value("value", std::string())) << "\r\n";
+            o << "EMAIL;TYPE=" << kith::sv(e, "label", "other") << ":" << escape(kith::sv(e, "value")) << "\r\n";
     if (c.contains("handles") && c["handles"].is_array())
         for (auto& h : c["handles"])
-            o << "IMPP:" << escape(h.value("kind", std::string("other"))) << ":" << escape(h.value("value", std::string())) << "\r\n";
+            o << "IMPP:" << escape(kith::sv(h, "kind", "other")) << ":" << escape(kith::sv(h, "value")) << "\r\n";
     if (c.contains("addresses") && c["addresses"].is_array())
         for (auto& a : c["addresses"])
-            o << "ADR;TYPE=" << a.value("label", std::string("other")) << ":;;"
-              << escape(a.value("street", std::string())) << ";" << escape(a.value("city", std::string())) << ";"
-              << escape(a.value("region", std::string())) << ";" << escape(a.value("postcode", std::string())) << ";"
-              << escape(a.value("country", std::string())) << "\r\n";
+            o << "ADR;TYPE=" << kith::sv(a, "label", "other") << ":;;"
+              << escape(kith::sv(a, "street")) << ";" << escape(kith::sv(a, "city")) << ";"
+              << escape(kith::sv(a, "region")) << ";" << escape(kith::sv(a, "postcode")) << ";"
+              << escape(kith::sv(a, "country")) << "\r\n";
     if (c.contains("notes") && c["notes"].is_string() && !c["notes"].get<std::string>().empty())
         o << "NOTE:" << escape(c["notes"].get<std::string>()) << "\r\n";
     if (c.contains("loamIdentity") && c["loamIdentity"].is_object()) {

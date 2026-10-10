@@ -1,3 +1,4 @@
+#include "kith_json.hpp"
 #include "kith_impl.h"
 
 // Generated umbrella: modules() + typed dependency wrappers (loam_core).
@@ -166,7 +167,7 @@ std::string KithImpl::cachedAddr(const std::string& bookId, bool* fresh) {
 static std::string addrFromIdentityJson(const std::string& ir) {
     if (ir.empty()) return std::string();
     json meta = json::parse(ir, nullptr, false);
-    return meta.is_object() ? meta.value("address", std::string()) : std::string();
+    return meta.is_object() ? kith::sv(meta, "address") : std::string();
 }
 void KithImpl::refreshAddrAsync(const std::string& bookId) {
     {
@@ -230,8 +231,8 @@ kith::Event KithImpl::mkEvent(const std::string& type, const json& payload, cons
                     std::string sr = modules().loam_core.signDigest(bookId, digestHex); // sync caller -> JSON string
                     if (!sr.empty()) {
                         json sres = json::parse(sr, nullptr, false);
-                        sg = sres.is_object() ? sres.value("sig", std::string()) : std::string();
-                        pk = sres.is_object() ? sres.value("pub", std::string()) : std::string();
+                        sg = sres.is_object() ? kith::sv(sres, "sig") : std::string();
+                        pk = sres.is_object() ? kith::sv(sres, "pub") : std::string();
                     }
                 } catch (...) {}
                 if (sg.empty() || pk.empty()) break;              // loam can't sign -> device key
@@ -492,7 +493,7 @@ std::string KithImpl::bookOwning(const std::string& contactId) const {
     for (const auto& b : m_store->books()) {
         json f = kith::foldBook(b.id, m_store->log(b.id));
         for (const auto& c : f["contacts"])
-            if (c.value("id", std::string()) == contactId) return b.id;
+            if (kith::sv(c, "id") == contactId) return b.id;
     }
     return "";
 }
@@ -501,7 +502,7 @@ std::string KithImpl::getContact(const std::string& contactId) {
     if (bid.empty()) return "{}";
     json f = kith::foldBook(bid, m_store->log(bid));
     for (const auto& c : f["contacts"])
-        if (c.value("id", std::string()) == contactId) return c.dump();
+        if (kith::sv(c, "id") == contactId) return c.dump();
     return "{}";
 }
 
@@ -512,7 +513,7 @@ std::string KithImpl::findByAddress(const std::string& address) {
         json f = kith::foldBook(b.id, m_store->log(b.id));
         for (const auto& c : f["contacts"]) {
             if (c.contains("loamIdentity") && c["loamIdentity"].is_object() &&
-                c["loamIdentity"].value("address", std::string()) == address)
+                kith::sv(c["loamIdentity"], "address") == address)
                 return c.dump();
         }
     }
@@ -525,14 +526,14 @@ std::string KithImpl::searchContacts(const std::string& query) {
     for (const auto& b : m_store->books()) {
         json f = kith::foldBook(b.id, m_store->log(b.id));
         for (const auto& c : f["contacts"]) {
-            std::string hay = c.value("name", json::object()).value("display", std::string());
-            hay += " " + c.value("notes", std::string());
+            std::string hay = kith::sv(c.contains("name") ? c["name"] : json(), "display");
+            hay += " " + kith::sv(c, "notes");
             if (c.contains("emails") && c["emails"].is_array())
-                for (auto& e : c["emails"]) hay += " " + e.value("value", std::string());
+                for (auto& e : c["emails"]) hay += " " + kith::sv(e, "value");
             if (c.contains("phones") && c["phones"].is_array())
-                for (auto& p : c["phones"]) hay += " " + p.value("value", std::string());
+                for (auto& p : c["phones"]) hay += " " + kith::sv(p, "value");
             if (c.contains("handles") && c["handles"].is_array())
-                for (auto& h : c["handles"]) hay += " " + h.value("value", std::string());
+                for (auto& h : c["handles"]) hay += " " + kith::sv(h, "value");
             for (auto& ch : hay) ch = (char)tolower((unsigned char)ch);
             if (hay.find(q) != std::string::npos) out.push_back(c);
         }
@@ -552,8 +553,8 @@ std::string KithImpl::addAuthorToContacts(const std::string& bookId, const std::
         json f = kith::foldBook(bid, m_store->log(bid));
         for (const auto& c : f["contacts"])
             if (c.contains("loamIdentity") && c["loamIdentity"].is_object() &&
-                c["loamIdentity"].value("address", std::string()) == address)
-                return c.value("id", std::string());
+                kith::sv(c["loamIdentity"], "address") == address)
+                return kith::sv(c, "id");
     }
     json p;
     p["name"] = json{{"display", name.empty() ? address : name}};
@@ -609,7 +610,7 @@ bool KithImpl::handleShareLink(const std::string& link, const std::string& ident
     std::string parsed = parseShareLink(link);
     if (parsed.empty()) return false;
     json j = json::parse(parsed, nullptr, false);
-    std::string id = j.value("id", std::string()), key = j.value("key", std::string()), name = j.value("name", std::string());
+    std::string id = kith::sv(j, "id"), key = kith::sv(j, "key"), name = kith::sv(j, "name");
     if (id.empty() || key.empty() || !kith::isValidBookId(id)) return false;
     m_store->upsertBook({ id, key, name });
     m_sync->startSync(id, key);
